@@ -67,8 +67,28 @@ export class GoogleSheetStore extends MemoryStore {
     this.settings = settings;
     Object.assign(this, googleClients(settings));
     this.id = settings.google_spreadsheet_id;
+    this.readCache = new Map();
+    this.readsInFlight = new Map();
   }
   async all(sheet) {
+    const now = Date.now(),
+      cached = this.readCache.get(sheet);
+    if (cached && cached.expires > now)
+      return cached.rows.map((row) => ({ ...row }));
+    if (this.readsInFlight.has(sheet))
+      return (await this.readsInFlight.get(sheet)).map((row) => ({ ...row }));
+    const promise = this.readSheet(sheet);
+    this.readsInFlight.set(sheet, promise);
+    try {
+      const rows = await promise;
+      const ttl = ["Users", "Sessions"].includes(sheet) ? 3000 : 15000;
+      this.readCache.set(sheet, { rows, expires: Date.now() + ttl });
+      return rows.map((row) => ({ ...row }));
+    } finally {
+      this.readsInFlight.delete(sheet);
+    }
+  }
+  async readSheet(sheet) {
     const headers = SHEET_HEADERS[sheet];
     const { data } = await this.sheets.spreadsheets.values.get({
       spreadsheetId: this.id,
@@ -92,6 +112,21 @@ export class GoogleSheetStore extends MemoryStore {
         values: records.map((r) => SHEET_HEADERS[sheet].map((h) => cell(r[h]))),
       },
     });
+    const cached = this.readCache.get(sheet);
+    if (cached) {
+      cached.rows.push(
+        ...records.map((record) =>
+          Object.fromEntries(
+            SHEET_HEADERS[sheet].map((header) => [
+              header,
+              cell(record[header]),
+            ]),
+          ),
+        ),
+      );
+      cached.expires =
+        Date.now() + (["Users", "Sessions"].includes(sheet) ? 3000 : 15000);
+    }
   }
   async update(sheet, key, value, changes) {
     const rows = await this.all(sheet);
@@ -108,6 +143,14 @@ export class GoogleSheetStore extends MemoryStore {
       valueInputOption: "RAW",
       requestBody: { values: [SHEET_HEADERS[sheet].map((h) => cell(row[h]))] },
     });
+    const cached = this.readCache.get(sheet);
+    if (cached) {
+      cached.rows[i] = Object.fromEntries(
+        SHEET_HEADERS[sheet].map((header) => [header, cell(row[header])]),
+      );
+      cached.expires =
+        Date.now() + (["Users", "Sessions"].includes(sheet) ? 3000 : 15000);
+    }
     return true;
   }
   async setResultHyperlinks(id, urls) {

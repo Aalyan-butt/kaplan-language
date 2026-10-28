@@ -518,24 +518,33 @@ export function createApp({ store, settings = getSettings(), workspace } = {}) {
       "EAI_AGAIN",
       "ETIMEDOUT",
     ].includes(err.code);
+    const quotaExceeded =
+      err?.response?.data?.error?.status === "RESOURCE_EXHAUSTED" ||
+      /quota exceeded|rate limit/i.test(String(err?.message || ""));
     const validation = err instanceof z.ZodError,
-      status = storageConnectionError
-        ? 503
+      status = quotaExceeded
+        ? 429
+        : storageConnectionError
+          ? 503
+          : validation
+            ? 422
+            : err instanceof multer.MulterError
+              ? err.code === "LIMIT_FILE_SIZE"
+                ? 413
+                : 422
+              : err.status || 500;
+    const message = quotaExceeded
+      ? "Google storage is temporarily busy. Wait a few seconds and try again."
+      : storageConnectionError
+        ? "The backend cannot connect to Google storage. Check its network access and try again."
         : validation
-          ? 422
-          : err instanceof multer.MulterError
-            ? err.code === "LIMIT_FILE_SIZE"
-              ? 413
-              : 422
-            : err.status || 500;
-    const message = storageConnectionError
-      ? "The backend cannot connect to Google storage. Check its network access and try again."
-      : validation
-        ? "Invalid request: " +
-          err.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")
-        : status < 500 || err instanceof HttpError
-          ? err.message
-          : "The service could not complete this request.";
+          ? "Invalid request: " +
+            err.issues
+              .map((i) => `${i.path.join(".")}: ${i.message}`)
+              .join("; ")
+          : status < 500 || err instanceof HttpError
+            ? err.message
+            : "The service could not complete this request.";
     if (status >= 500)
       console.error(
         JSON.stringify({
@@ -545,6 +554,7 @@ export function createApp({ store, settings = getSettings(), workspace } = {}) {
           ...(storageConnectionError ? { code: err.code } : {}),
         }),
       );
+    if (quotaExceeded) res.set("Retry-After", "10");
     res.status(status).json({ error: { message, request_id: req.requestId } });
   });
   return app;

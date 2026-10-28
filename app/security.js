@@ -31,15 +31,6 @@ export class HttpError extends Error {
   }
 }
 export function strength(password) {
-  if (password.length < 10 || password.length > 128)
-    throw new HttpError(422, "Password must contain 10 to 128 characters.");
-  if (
-    [/\p{Ll}/u, /\p{Lu}/u, /\p{N}/u, /[^\p{L}\p{N}]/u].filter((r) =>
-      r.test(password),
-    ).length < 3
-  )
-    throw new HttpError(
-      422,
-      "Use at least three of: uppercase, lowercase, number, symbol.",
-    );
+  if (password.length < 6 || password.length > 128)
+    throw new HttpError(422, "Password must contain 6 to 128 characters.");
 }

@@ -11,10 +11,6 @@
     <meta name="description" content="Kaplan English Placement Assessment" />
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
     <script src="config.js"></script>
-    <script
-      defer
-      src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"
-    ></script>
     <style>
       @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Libre+Caslon+Display&display=swap");
       :root {
@@ -1127,6 +1123,18 @@
         location.hostname === "127.0.0.1" || location.hostname === "localhost"
           ? ""
           : window.KAPLAN_API_URL || "";
+      const CONFIG = window.KAPLAN_CONFIG || {
+        locale: "en-GB",
+        writing: { targetMin: 120, targetMax: 180 },
+        speaking: {
+          maxSeconds: 90,
+          questions: [
+            "What did you do last weekend?",
+            "Do you have any hobbies?",
+            "Describe a place you visited and what you did there.",
+          ],
+        },
+      };
       const app = document.querySelector("#app"),
         toastEl = document.querySelector("#toast");
       const state = {
@@ -1141,6 +1149,32 @@
         submitting: false,
         timer: null,
       };
+      const passwordPolicyObserver = new MutationObserver(() => {
+        document
+          .querySelectorAll('input[type="password"][minlength]')
+          .forEach(
+            (field) =>
+              (field.minLength = Number(CONFIG.passwordMinLength || 6)),
+          );
+      });
+      passwordPolicyObserver.observe(app, { childList: true, subtree: true });
+      function loadMp3Encoder() {
+        if (window.lamejs) return Promise.resolve(window.lamejs);
+        if (state.encoderPromise) return state.encoderPromise;
+        state.encoderPromise = new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src =
+            "https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js";
+          script.async = true;
+          script.onload = () => resolve(window.lamejs);
+          script.onerror = () => {
+            state.encoderPromise = null;
+            reject(new Error("The audio recorder could not be loaded."));
+          };
+          document.head.appendChild(script);
+        });
+        return state.encoderPromise;
+      }
       const icon = (name) =>
         ({
           lock: '<svg class="icon" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>',
@@ -1305,6 +1339,7 @@
         state.user.role === "student" ? studentView() : adminViewV3();
       }
       function studentView() {
+        void loadMp3Encoder().catch(() => {});
         state.started = Date.now();
         state.submissionId = null;
         state.uploadedAudio = new Map();
@@ -1313,13 +1348,20 @@
         app.innerHTML =
           nav() +
           `<main class="main"><section class="hero"><div><div class="kicker">Kaplan English placement</div><h1 class="page-title">Your assessment</h1><p>Take your time and answer naturally. Your writing is checked automatically as a first pass, then reviewed by a teacher.</p></div><span class="status-pill">1 attempt available</span></section><div class="progress-card"><span class="progress-label" id="progressText">Getting started</span><div class="track"><i id="progressBar"></i></div><span class="time-chip" id="elapsed">00:00</span></div><div class="layout"><form class="content" id="testForm"><section class="card"><div class="card-head"><div class="number">01</div><div><h2>Confirm your details</h2><p class="card-sub">Please make sure this is your account before beginning.</p></div></div><div class="details"><div class="detail"><span>Student name</span><b>${esc(state.user.name)}</b></div><div class="detail"><span>Email address</span><b>${esc(state.user.email)}</b></div><div class="detail"><span>Assessment date</span><b>${new Intl.DateTimeFormat("en-GB", { dateStyle: "long" }).format(new Date())}</b></div><div class="detail"><span>Language standard</span><b>British English</b></div></div></section><section class="card"><div class="card-head"><div class="number">02</div><div><h2>Writing task</h2><p class="card-sub">Write in your own words. Aim for 120–180 words.</p></div></div><div class="prompt"><small>Your question</small><strong>Describe a memorable day in your life.</strong><p>Explain what happened, where you were, who was with you and why it was important. Try to describe events in the past.</p></div><label class="label" for="writing">Your answer</label><textarea id="writing" class="writing" maxlength="5000" required placeholder="Begin writing here…"></textarea><div class="counter"><span id="wordMessage">Aim for 120–180 words</span><span><b id="wordCount">0</b> words</span></div></section><section class="card"><div class="card-head"><div class="number">03</div><div><h2>Speaking tasks</h2><p class="card-sub">Record every answer, then review its transcript for grammar checking. You can listen and record again before submitting.</p></div></div><div class="speaking-list">${speakingCard(0, "What did you do last weekend?")}${speakingCard(1, "Tell me about a time when you felt proud of yourself.")}${speakingCard(2, "Describe a place you visited and what you did there.")}</div><div class="consent"><input id="confirmWork" type="checkbox" required><label for="confirmWork">I confirm that these are my own answers and that I have listened to all three recordings.</label></div><div class="submit-row"><p>After submission, your answers cannot be changed unless an administrator allows another attempt.</p><button class="btn btn-primary" id="submitTest" type="submit" disabled>Submit assessment ${icon("check")}</button></div><div class="form-error" id="submitError"></div></section></form><aside class="side"><section class="side-card"><h3>Before you submit</h3><ul class="checklist"><li><i class="check" id="c-writing">✓</i><span>Writing contains at least 20 words</span></li><li><i class="check" id="c-audio">✓</i><span>All three recordings and transcripts are ready</span></li><li><i class="check" id="c-confirm">✓</i><span>Declaration is confirmed</span></li></ul></section><section class="side-card help"><h3>A calm space helps</h3><p>Use headphones if possible, speak clearly and keep the microphone close. Each answer can be up to 90 seconds.</p><button class="btn" type="button" id="micCheck">Check microphone</button></section></aside></div></main>`;
+        const writingCard = document.querySelector("#writing").closest(".card");
+        writingCard.querySelector(".prompt strong").textContent =
+          CONFIG.writing.question || "Describe a memorable day in your life.";
+        writingCard.querySelector(".card-sub").textContent =
+          `Write in your own words. Aim for ${CONFIG.writing.targetMin}–${CONFIG.writing.targetMax} words.`;
+        document.querySelector("#wordMessage").textContent =
+          `Aim for ${CONFIG.writing.targetMin}–${CONFIG.writing.targetMax} words`;
         bindLogout();
         bindTest();
         startClock();
       }
       function speakingCard(i, q) {
-        if (i === 1) q = "Do you have any hobbies?";
-        return `<article class="speaking"><div class="q-title"><span class="q-badge">${i + 1}</span><b>${esc(q)}</b></div><div class="record-area"><button class="btn btn-soft record" type="button" id="record${i}" data-i="${i}">${icon("mic")} Record answer</button><span class="rec-state" id="state${i}">Not recorded · maximum 90 seconds</span></div><audio class="hidden" id="audio${i}" controls preload="metadata"></audio><textarea class="hidden" id="transcript${i}" maxlength="3000" aria-hidden="true" tabindex="-1"></textarea></article>`;
+        q = CONFIG.speaking.questions[i] || q;
+        return `<article class="speaking"><div class="q-title"><span class="q-badge">${i + 1}</span><b>${esc(q)}</b></div><div class="record-area"><button class="btn btn-soft record" type="button" id="record${i}" data-i="${i}">${icon("mic")} Record answer</button><span class="rec-state" id="state${i}">Not recorded · maximum ${CONFIG.speaking.maxSeconds} seconds</span></div><audio class="hidden" id="audio${i}" controls preload="metadata"></audio><textarea class="hidden" id="transcript${i}" maxlength="3000" aria-hidden="true" tabindex="-1"></textarea></article>`;
       }
       function bindTest() {
         const w = document.querySelector("#writing"),
@@ -1366,12 +1408,15 @@
         document.querySelector("#wordCount").textContent = words;
         const msg = document.querySelector("#wordMessage");
         msg.textContent =
-          words < 120
-            ? `${120 - words} more to reach the target`
-            : words <= 180
+          words < CONFIG.writing.targetMin
+            ? `${CONFIG.writing.targetMin - words} more to reach the target`
+            : words <= CONFIG.writing.targetMax
               ? "Within the recommended range"
-              : `${words - 180} over the recommended range`;
-        msg.className = words >= 120 && words <= 180 ? "good" : "";
+              : `${words - CONFIG.writing.targetMax} over the recommended range`;
+        msg.className =
+          words >= CONFIG.writing.targetMin && words <= CONFIG.writing.targetMax
+            ? "good"
+            : "";
         const writing = words >= 20,
           audio = state.audio.every(Boolean) && !state.recorders.some(Boolean),
           confirmed = document.querySelector("#confirmWork").checked;
@@ -1399,8 +1444,10 @@
           toast("Stop the current recording first.");
           return;
         }
-        if (!window.lamejs) {
-          toast("The MP3 encoder is still loading. Please wait a moment.");
+        try {
+          await loadMp3Encoder();
+        } catch (error) {
+          toast(error.message);
           return;
         }
         try {
@@ -1432,7 +1479,10 @@
             started: Date.now(),
             timeout: null,
           };
-          rec.timeout = setTimeout(() => stopRecording(i), 90000);
+          rec.timeout = setTimeout(
+            () => stopRecording(i),
+            CONFIG.speaking.maxSeconds * 1000,
+          );
           state.recorders[i] = rec;
           startTranscript(i, rec);
           updateReady();
@@ -1442,7 +1492,7 @@
           b.innerHTML = '<span class="pulse"></span> Stop recording';
           const tick = () => {
             if (state.recorders[i]) {
-              s.innerHTML = `<span class="pulse"></span> Recording · ${Math.min(90, Math.floor((Date.now() - rec.started) / 1000))} seconds`;
+              s.innerHTML = `<span class="pulse"></span> Recording · ${Math.min(CONFIG.speaking.maxSeconds, Math.floor((Date.now() - rec.started) / 1000))} seconds`;
               rec.tick = requestAnimationFrame(tick);
             }
           };
@@ -1842,12 +1892,14 @@
             .join("")
         );
       }
-      async function openReport(id) {
+      async function openReport(id, preloaded) {
         try {
-          const x = await api(
-              "/api/v1/admin/results/" + encodeURIComponent(id),
-              { method: "GET", headers: { "X-CSRF-Token": state.csrf } },
-            ),
+          const x =
+              preloaded ||
+              (await api("/api/v1/admin/results/" + encodeURIComponent(id), {
+                method: "GET",
+                headers: { "X-CSRF-Token": state.csrf },
+              })),
             r = x.result,
             w = x.report.writing || {},
             scores = w.scores || {};
@@ -2036,12 +2088,14 @@
           }
         };
       }
-      async function openReport(id) {
+      async function openReport(id, preloaded) {
         try {
-          const x = await api(
-              "/api/v1/admin/results/" + encodeURIComponent(id),
-              { method: "GET", headers: { "X-CSRF-Token": state.csrf } },
-            ),
+          const x =
+              preloaded ||
+              (await api("/api/v1/admin/results/" + encodeURIComponent(id), {
+                method: "GET",
+                headers: { "X-CSRF-Token": state.csrf },
+              })),
             r = x.result,
             w = x.report.writing || {},
             scores = w.scores || {},
@@ -2332,12 +2386,15 @@
         }
       }
       async function openManagedReport(id) {
+        if (state.openingReport || document.querySelector(".report-modal"))
+          return;
+        state.openingReport = true;
         try {
           const detail = await api(
             "/api/v1/admin/results/" + encodeURIComponent(id),
             { method: "GET", headers: { "X-CSRF-Token": state.csrf } },
           );
-          await openReport(id);
+          await openReport(id, detail);
           const modals = document.querySelectorAll(".modal"),
             modal = modals[modals.length - 1],
             card = modal?.querySelector(".report-modal");
@@ -2374,6 +2431,8 @@
           };
         } catch (e) {
           toast(e.message);
+        } finally {
+          state.openingReport = false;
         }
       }
       document.addEventListener(
@@ -2406,14 +2465,28 @@
       );
       async function attachEmbeddedAudio(submissionId, modal) {
         const cards = [...modal.querySelectorAll(".audio-evidence>div")];
-        await Promise.all(
-          cards.map(async (card, index) => {
-            const driveLink = card.querySelector("a[href]");
-            if (driveLink) driveLink.textContent = "Open in Google Drive";
-            const panel = document.createElement("div");
-            panel.className = "record-area";
-            panel.innerHTML = `<div class="status"><i class="spinner"></i><span>Loading recording…</span></div>`;
-            driveLink?.insertAdjacentElement("beforebegin", panel);
+        const objectUrls = [];
+        const observer = new MutationObserver(() => {
+          if (!document.body.contains(modal)) {
+            objectUrls.forEach((url) => URL.revokeObjectURL(url));
+            observer.disconnect();
+          }
+        });
+        observer.observe(document.body, { childList: true });
+        cards.forEach((card, index) => {
+          const driveLink = card.querySelector("a[href]");
+          if (driveLink) driveLink.textContent = "Open in Google Drive";
+          const panel = document.createElement("div");
+          panel.className = "record-area";
+          const load = document.createElement("button");
+          load.type = "button";
+          load.className = "btn btn-soft";
+          load.textContent = `Load answer ${index + 1} audio`;
+          panel.appendChild(load);
+          driveLink?.insertAdjacentElement("beforebegin", panel);
+          load.onclick = async () => {
+            load.disabled = true;
+            load.innerHTML = '<i class="spinner"></i> Loading audio…';
             try {
               const response = await authenticatedFetch(
                 "/api/v1/admin/results/" +
@@ -2436,6 +2509,7 @@
               }
               const blob = await response.blob(),
                 url = URL.createObjectURL(blob);
+              objectUrls.push(url);
               panel.innerHTML = "";
               const audio = document.createElement("audio");
               audio.controls = true;
@@ -2456,22 +2530,22 @@
               download.textContent = "Download MP3";
               actions.appendChild(download);
               panel.append(audio, actions);
-              modal.addEventListener("remove", () => URL.revokeObjectURL(url), {
-                once: true,
-              });
             } catch (e) {
               panel.innerHTML = `<p class="form-error">${esc(e.message)}</p>`;
             }
-          }),
-        );
+          };
+        });
       }
       async function openManagedReport(id) {
+        if (state.openingReport || document.querySelector(".report-modal"))
+          return;
+        state.openingReport = true;
         try {
           const detail = await api(
             "/api/v1/admin/results/" + encodeURIComponent(id),
             { method: "GET", headers: { "X-CSRF-Token": state.csrf } },
           );
-          await openReport(id);
+          await openReport(id, detail);
           const modals = document.querySelectorAll(".modal"),
             modal = modals[modals.length - 1],
             card = modal?.querySelector(".report-modal");
@@ -2558,12 +2632,15 @@
         });
       }
       async function openManagedReport(id) {
+        if (state.openingReport || document.querySelector(".report-modal"))
+          return;
+        state.openingReport = true;
         try {
           const detail = await api(
             "/api/v1/admin/results/" + encodeURIComponent(id),
             { method: "GET", headers: { "X-CSRF-Token": state.csrf } },
           );
-          await openReport(id);
+          await openReport(id, detail);
           const modals = document.querySelectorAll(".modal"),
             modal = modals[modals.length - 1],
             card = modal?.querySelector(".report-modal");
@@ -2602,6 +2679,8 @@
           };
         } catch (e) {
           toast(e.message);
+        } finally {
+          state.openingReport = false;
         }
       }
       function adminViewV2() {

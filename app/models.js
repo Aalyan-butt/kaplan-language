@@ -5,7 +5,7 @@ const name = z
     .max(100)
     .transform((s) => s.trim().replace(/\s+/g, " ")),
   email = z.email(),
-  password = z.string().min(10).max(128),
+  password = z.string().min(6).max(128),
   attempts = z.number().int().min(1).max(20),
   role = z.enum(["student", "admin"]);
 export const createUser = z.object({
