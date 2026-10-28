@@ -14,17 +14,22 @@ const prompts = [
     "did",
   ],
   [
-    "proud",
-    "achieved",
-    "achievement",
-    "passed",
-    "won",
-    "completed",
-    "helped",
-    "success",
-    "successful",
-    "award",
-    "accomplished",
+    "hobby",
+    "hobbies",
+    "enjoy",
+    "like",
+    "love",
+    "prefer",
+    "reading",
+    "books",
+    "music",
+    "sports",
+    "football",
+    "cooking",
+    "painting",
+    "drawing",
+    "swimming",
+    "gardening",
   ],
   [
     "place",
@@ -214,7 +219,7 @@ export function assessSpeaking(
     };
   });
   return {
-    version: "speaking-strict-1.0",
+    version: "speaking-strict-1.1",
     overall_score: round(
       answers.reduce((total, answer) => total + answer.final_score, 0) /
         answers.length,

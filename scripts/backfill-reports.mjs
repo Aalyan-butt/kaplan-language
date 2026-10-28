@@ -68,7 +68,7 @@ for (const row of rows) {
     speaking_audio_feedback: report.speaking_assessment.answers
       .map((a) => `Answer ${a.answer}: ${a.feedback.join(" ")}`)
       .join(" | "),
-    formula_version: `${report.formula_version}+speaking-strict-1.0`,
+    formula_version: `${report.formula_version}+speaking-strict-1.1`,
     report_json: JSON.stringify({ ...report, speaking_recording: speaking }),
     doc_url: docUrl,
   });

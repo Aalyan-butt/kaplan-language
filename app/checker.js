@@ -377,6 +377,10 @@ export function analyse(
     seen.add(k);
     return true;
   });
+  // Speech-recognition transcripts do not preserve reliable sentence casing.
+  // Do not penalise the student for a lower-case first letter added by the browser.
+  if (section.startsWith("speaking_"))
+    issues = issues.filter((issue) => issue.rule_id !== "sentence-capital");
   const count = words.length,
     sentenceCount = Math.max(
       1,

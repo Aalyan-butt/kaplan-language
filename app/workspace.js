@@ -66,6 +66,22 @@ export function reportHtml(
   audio,
 ) {
   const scores = report.scores;
+  const grades = new Map(
+    (report.speaking_assessment?.answers || []).map((a) => [a.answer, a]),
+  );
+  const mergedSpeaking = [0, 1, 2]
+    .map((index) => {
+      const language = report.speaking_language?.[index] || {};
+      const number = index + 1,
+        grade = grades.get(number) || language.assessment || {},
+        recording = speaking.answers[index] || {},
+        issues = (language.issues || []).filter(
+          (issue) => issue.rule_id !== "sentence-capital",
+        );
+      return `<h3>Answer ${number}: ${esc(grade.final_score ?? "—")}/5</h3><table><tr><th>Grammar</th><th>Vocabulary</th><th>Sentences</th><th>Development</th><th>Relevance</th><th>Recording quality</th></tr><tr><td>${esc(grade.grammar_score ?? "—")}/5</td><td>${esc(grade.vocabulary_score ?? "—")}/5</td><td>${esc(grade.sentence_score ?? "—")}/5</td><td>${esc(grade.development_score ?? "—")}/5</td><td>${esc(grade.relevance_score ?? "—")}/5</td><td>${esc(grade.recording_quality_score ?? recording.automated_recording_score ?? "—")}/5</td></tr></table><p>${esc((grade.feedback || []).join(" ") || (recording.feedback || []).join(" "))}</p><p><a href="${esc(audio[index]?.webViewLink || "")}">Listen to answer ${number}</a> — ${esc(recording.duration_seconds ?? "—")} seconds</p><p><b>Automatically captured transcript:</b> ${esc(transcripts[index] || "Unavailable; listen to the recording.")}</p><h4>Mistakes and corrections</h4><table><tr><th>Category</th><th>Original</th><th>Correction</th><th>Why</th></tr>${issues.map((issue) => `<tr><td>${esc(issue.category)}</td><td>${esc(issue.original)}</td><td>${esc(issue.correction || "—")}</td><td>${esc(issue.explanation)}</td></tr>`).join("") || '<tr><td colspan="4">No rule-based grammar, vocabulary or sentence mistakes found.</td></tr>'}</table>`;
+    })
+    .join("");
+  return `<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Arial;color:#272124;line-height:1.55}h1,h2,h3{color:#731f35}table{border-collapse:collapse;width:100%;margin:10px 0 20px}td,th{border:1px solid #ddd;padding:8px;text-align:left}.box{background:#f7f2f3;padding:14px;white-space:pre-wrap}del{color:#a32636}ins{color:#207044;text-decoration:none}</style></head><body><h1>Kaplan English Placement Report</h1><p><b>Student:</b> ${esc(user.name)}<br><b>Email:</b> ${esc(user.email)}</p><p><b>Automated first-pass check—teacher to confirm.</b> Speaking transcript sentence-start capitalisation is not graded because automatic transcription does not preserve casing reliably.</p><h2>Writing score summary</h2><table><tr><th>Grammar</th><th>Spelling & punctuation</th><th>Vocabulary</th><th>Task & length</th><th>Total</th><th>Suggested level</th></tr><tr>${[scores.grammar, scores.spelling_punctuation, scores.vocabulary, scores.task_length].map((n) => `<td>${n}/5</td>`).join("")}<td>${report.total}/20</td><td>${esc(report.level)}</td></tr></table><h2>Original writing answer</h2><div class="box">${esc(writing)}</div><h2>Corrected writing view</h2><div class="box">${correctedHtml(writing, report.issues)}</div><h2>Writing mistakes and corrections</h2><table><tr><th>Category</th><th>Original</th><th>Correction</th><th>Why</th></tr>${report.issues.map((i) => `<tr><td>${esc(i.category)}</td><td>${esc(i.original)}</td><td>${esc(i.correction || "—")}</td><td>${esc(i.explanation)}</td></tr>`).join("") || '<tr><td colspan="4">No rule-based writing issues found.</td></tr>'}</table><h2>Speaking grammar, sentences and recordings: ${esc(report.speaking_assessment?.overall_score ?? "—")}/5</h2><p>${esc(report.speaking_assessment?.formula || "")}</p>${mergedSpeaking}<h2>Teacher decision</h2><p>Final placement: ____________________</p><p>Teacher notes:</p><br><br></body></html>`;
   return `<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Arial;color:#272124;line-height:1.55}h1,h2,h3{color:#731f35}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:8px;text-align:left}.box{background:#f7f2f3;padding:14px;white-space:pre-wrap}del{color:#a32636}ins{color:#207044;text-decoration:none}</style></head><body><h1>Kaplan English Placement Report</h1><p><b>Student:</b> ${esc(user.name)}<br><b>Email:</b> ${esc(user.email)}</p><p><b>Automated first-pass check—teacher to confirm.</b> Grammar scoring uses fixed rules. Speaking grammar uses the reviewed transcript. Relevance, natural style and pronunciation require a teacher.</p><h2>Score summary</h2><table><tr><th>Grammar</th><th>Spelling & punctuation</th><th>Vocabulary</th><th>Task & length</th><th>Total</th><th>Suggested level</th></tr><tr>${[scores.grammar, scores.spelling_punctuation, scores.vocabulary, scores.task_length].map((n) => `<td>${n}/5</td>`).join("")}<td>${report.total}/20</td><td>${esc(report.level)}</td></tr></table><p><b>Formula:</b> ${esc(report.formula)}</p><h2>Task-completion feedback</h2><ul>${report.task_feedback.map((f) => `<li>${esc(f)}</li>`).join("")}</ul><h2>Original writing answer</h2><div class="box">${esc(writing)}</div><h2>Corrected view</h2><div class="box">${correctedHtml(writing, report.issues)}</div><h2>Mistakes and corrections</h2><table><tr><th>Category</th><th>Original</th><th>Correction</th><th>Why</th></tr>${report.issues.map((i) => `<tr><td>${esc(i.category)}</td><td>${esc(i.original)}</td><td>${esc(i.correction || "—")}</td><td>${esc(i.explanation)}</td></tr>`).join("") || '<tr><td colspan="4">No rule-based issues found.</td></tr>'}</table><h2>Personal learning guidelines</h2>${report.lessons.map((l) => `<h3>${esc(l.title)}</h3><p>${esc(l.rule)}</p><p><b>Examples:</b> ${esc(l.examples)}<br><b>Common mistake:</b> ${esc(l.mistake)}</p><p><b>Your example:</b> ${esc(l.student_example.original)} → ${esc(l.student_example.correction || "review")}</p>`).join("") || "<p>No specific mini-lessons were selected.</p>"}<h2>Speaking evidence</h2>${transcripts.map((t, i) => `<h3>Answer ${i + 1}</h3><p><a href="${esc(audio[i].webViewLink)}">Listen to answer ${i + 1}</a> — ${speaking.answers[i].duration_seconds} seconds — recording evidence ${speaking.answers[i].automated_recording_score}/5</p><p>${esc(speaking.answers[i].feedback.join(" "))}</p><p><b>Reviewed transcript:</b> ${esc(t || "Not supplied; teacher must listen to assess language content.")}</p>`).join("")}${speakingLanguageHtml(report.speaking_language)}<h2>Teacher speaking checklist</h2><table><tr><th>Area</th><th>Score /5</th><th>Notes</th></tr>${["Fluency", "Pronunciation and word accuracy", "Length and development", "Relevance"].map((t) => `<tr><td>${t}</td><td></td><td></td></tr>`).join("")}</table><h2>Final placement</h2><p>Teacher level: ____________________</p><p>Teacher notes:</p><br><br></body></html>`;
 }
 export class GoogleWorkspaceArtifacts {
@@ -308,7 +324,7 @@ export class GoogleWorkspaceArtifacts {
       webViewLink: row[`audio_${number}_url`] || "",
     }));
     const { data } = await this.drive.files.list({
-      q: `'${folder}' in parents and trashed=false and appProperties has { key='report_version' and value='strict-1.0' }`,
+      q: `'${folder}' in parents and trashed=false and appProperties has { key='report_version' and value='strict-1.1' }`,
       fields: "files(id,webViewLink)",
       pageSize: 1,
     });
@@ -320,7 +336,7 @@ export class GoogleWorkspaceArtifacts {
         parents: [folder],
         appProperties: {
           submission_id: row.submission_id,
-          report_version: "strict-1.0",
+          report_version: "strict-1.1",
         },
       },
       media: {
