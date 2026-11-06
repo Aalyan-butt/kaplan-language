@@ -121,6 +121,7 @@ export async function createSubmission(req, store, workspace, service) {
   let recordings;
   if (p.uploaded_audio) {
     if (store.google) recordings = await workspace.readChunks(user, id);
+    else if (store.readChunks) recordings = await store.readChunks(user, id);
     else
       recordings = [1, 2, 3].map((n) => {
         const chunks = store.chunks.get(`${user.user_id}:${id}:${n}`);
@@ -273,6 +274,7 @@ export async function createSubmission(req, store, workspace, service) {
   );
   await store.appendMany("Errors", errorRows);
   if (store.google) await store.setResultHyperlinks(id, artifacts.audio_urls);
+  else if (store.saveRecordings) await store.saveRecordings(id, recordings);
   else {
     store.recordings ??= new Map();
     store.recordings.set(id, recordings);

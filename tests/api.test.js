@@ -512,7 +512,7 @@ test("Google network failures return a safe, actionable error", async (t) => {
     json: { email: "admin@example.com", password: "Strong!Pass1" },
   });
   assert.equal(result.status, 503);
-  assert.match(result.data.error.message, /cannot connect to Google storage/);
+  assert.match(result.data.error.message, /cannot connect to storage/);
   assert.ok(!result.text.includes("Sensitive internal"));
 });
 test("Google quota failures return a safe retry response", async (t) => {

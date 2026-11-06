@@ -1,12 +1,10 @@
 import { getSettings } from "../app/config.js";
-import { GoogleSheetStore } from "../app/store.js";
+import { MySQLStore } from "../app/mysql-store.js";
 import { passwordHash, strength, iso } from "../app/security.js";
 import { AccountService } from "../app/service.js";
 import { prompt } from "./prompt.mjs";
 const settings = getSettings();
-if (!settings.google_ready)
-  throw new Error("Google configuration is incomplete.");
-const store = new GoogleSheetStore(settings),
+const store = new MySQLStore(settings),
   email = (await prompt("Administrator email: ")).trim().toLowerCase(),
   user = await store.find("Users", "email", email);
 if (!user || user.role !== "admin")
@@ -35,3 +33,5 @@ await new AccountService(store, settings).audit(
   user,
 );
 console.log("Administrator password reset and sessions revoked.");
+
+await store.close();

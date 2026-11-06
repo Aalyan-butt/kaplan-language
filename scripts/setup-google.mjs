@@ -13,9 +13,14 @@ import { prompt } from "./prompt.mjs";
 const args = process.argv.slice(2),
   flag = (name) => args[args.indexOf(name) + 1];
 let env = { ...process.env };
-if (args.includes("--client-secrets")) {
-  const raw = JSON.parse(await readFile(flag("--client-secrets"), "utf8")),
+if (args.includes("--client-secrets") || args.includes("--reconnect")) {
+  let client;
+  if (args.includes("--client-secrets")) {
+    const raw = JSON.parse(await readFile(flag("--client-secrets"), "utf8"));
     client = raw.installed || raw.web;
+  } else if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
+    client = { client_id: env.GOOGLE_CLIENT_ID, client_secret: env.GOOGLE_CLIENT_SECRET };
+  }
   if (!client)
     throw new Error("Expected a Google Desktop OAuth client JSON file.");
   const server = createServer();
@@ -169,6 +174,10 @@ if (!settings.google_spreadsheet_id) {
       updated_by: "setup",
     })),
   );
+  console.log("Google storage created.");
+}
+if (args.includes("--client-secrets") || args.includes("--reconnect") || !env.GOOGLE_SPREADSHEET_ID) {
+  // Save refreshed credentials for existing installations too.
   // Save secrets locally, never print them. Existing .env entries are preserved.
   let previous = "";
   try {
@@ -193,7 +202,7 @@ if (!settings.google_spreadsheet_id) {
   }
   await writeFile(".env", previous + "\n");
   console.log(
-    "Google storage created. Configuration saved in your local .env.",
+    "Google configuration saved in your local .env. Restart the app. Update the Google OAuth variables on your hosting provider too.",
   );
 }
 const store = new GoogleSheetStore(settings);

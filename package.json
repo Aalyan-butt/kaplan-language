@@ -14,7 +14,9 @@
     "check:netlify": "node scripts/check-netlify.mjs",
     "format": "prettier --write app scripts/*.mjs netlify/functions tests/*.js package.json",
     "check:google": "node scripts/check-google.mjs",
-    "backfill:reports": "node scripts/backfill-reports.mjs"
+    "backfill:reports": "node scripts/backfill-reports.mjs",
+    "setup:mysql": "node scripts/setup-mysql.mjs",
+    "migrate:mysql": "node scripts/migrate-google-to-mysql.mjs"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.0.2",
@@ -22,6 +24,7 @@
     "express": "^5.1.0",
     "googleapis": "^160.0.0",
     "multer": "^2.0.2",
+    "mysql2": "^3.24.6",
     "serverless-http": "^4.0.0",
     "zod": "^4.1.12"
   },

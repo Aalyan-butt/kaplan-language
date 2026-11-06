@@ -17,6 +17,13 @@ export function getSettings(env = process.env) {
     account_lock_minutes: number("ACCOUNT_LOCK_MINUTES", 2, 1, 1440),
     max_login_failures: number("MAX_LOGIN_FAILURES", 5, 3, 20),
   };
+  s.mysql_host = env.MYSQL_HOST || "127.0.0.1";
+  s.mysql_port = number("MYSQL_PORT", 3306, 1, 65535);
+  s.mysql_database = env.MYSQL_DATABASE || "kaplan";
+  s.mysql_user = env.MYSQL_USER || "root";
+  s.mysql_password = env.MYSQL_PASSWORD || "";
+  s.mysql_ssl = env.MYSQL_SSL === "true";
+  s.google_artifacts = env.GOOGLE_ARTIFACTS === "true";
   for (const key of [
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",

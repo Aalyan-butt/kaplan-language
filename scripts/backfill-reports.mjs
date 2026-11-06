@@ -1,15 +1,15 @@
 import { getSettings } from "../app/config.js";
-import { GoogleSheetStore } from "../app/store.js";
+import { MySQLStore } from "../app/mysql-store.js";
 import { GoogleWorkspaceArtifacts } from "../app/workspace.js";
 import { analyseSubmission } from "../app/checker.js";
 import { assessSpeaking } from "../app/assessment.js";
 
 const apply = process.argv.includes("--apply");
 const settings = getSettings();
-if (!settings.google_ready)
-  throw new Error("Google configuration is incomplete.");
-const store = new GoogleSheetStore(settings);
-const workspace = new GoogleWorkspaceArtifacts(settings, store);
+const store = new MySQLStore(settings);
+const workspace = store.google
+  ? new GoogleWorkspaceArtifacts(settings, store)
+  : null;
 const rows = await store.all("Results");
 
 for (const row of rows) {
@@ -62,7 +62,9 @@ for (const row of rows) {
     `${apply ? "UPDATE" : "WOULD UPDATE"} ${row.submission_id}: speaking ${row.speaking_auto_score || "—"} -> ${report.speaking_assessment.overall_score}/5`,
   );
   if (!apply) continue;
-  const docUrl = await workspace.refreshReport(row, report, speaking);
+  const docUrl = workspace
+    ? await workspace.refreshReport(row, report, speaking)
+    : row.doc_url;
   await store.update("Results", "submission_id", row.submission_id, {
     speaking_auto_score: report.speaking_assessment.overall_score,
     speaking_audio_feedback: report.speaking_assessment.answers
@@ -76,3 +78,5 @@ for (const row of rows) {
 console.log(
   `${apply ? "Updated" : "Dry run checked"} ${rows.length} existing report(s).`,
 );
+
+await store.close();

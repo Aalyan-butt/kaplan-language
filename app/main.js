@@ -3,7 +3,7 @@ import multer from "multer";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { getSettings } from "./config.js";
-import { GoogleSheetStore } from "./store.js";
+import { MySQLStore } from "./mysql-store.js";
 import { AccountService, publicUser } from "./service.js";
 import { GoogleWorkspaceArtifacts } from "./workspace.js";
 import { HttpError, iso, strength, passwordHash } from "./security.js";
@@ -55,12 +55,7 @@ export function createApp({ store, settings = getSettings(), workspace } = {}) {
     );
   app.use("/api", (req, res, next) => {
     if (!store) {
-      if (!settings.google_ready)
-        throw new HttpError(
-          503,
-          "Google configuration is incomplete. Set the Google environment variables.",
-        );
-      store = new GoogleSheetStore(settings);
+      store = new MySQLStore(settings);
     }
     service ??= new AccountService(store, settings);
     workspace ??= store.google
@@ -341,6 +336,8 @@ export function createApp({ store, settings = getSettings(), workspace } = {}) {
         throw new HttpError(409, "No test attempts remain for this account.");
       if (store.google)
         await workspace.putChunk(req.user, id, number, index, total, bytes);
+      else if (store.putChunk)
+        await store.putChunk(req.user, id, number, index, total, bytes);
       else {
         const key = `${req.user.user_id}:${id}:${number}`;
         let entry = store.chunks.get(key);
@@ -440,11 +437,13 @@ export function createApp({ store, settings = getSettings(), workspace } = {}) {
     if (![1, 2, 3].includes(n))
       throw new HttpError(404, "Recording not found.");
     const row = await result(req.params.id);
-    if (!workspace)
-      throw new HttpError(409, "Audio streaming requires Google storage.");
+    if (!workspace && !store.readRecording)
+      throw new HttpError(409, "Audio storage is unavailable.");
     let content;
     try {
-      content = await workspace.downloadRecording(row[`audio_${n}_url`]);
+      content = store.readRecording
+        ? await store.readRecording(req.params.id, n)
+        : await workspace.downloadRecording(row[`audio_${n}_url`]);
     } catch (e) {
       if (e instanceof HttpError) throw e;
       throw new HttpError(
@@ -536,7 +535,7 @@ export function createApp({ store, settings = getSettings(), workspace } = {}) {
     const message = quotaExceeded
       ? "Google storage is temporarily busy. Wait a few seconds and try again."
       : storageConnectionError
-        ? "The backend cannot connect to Google storage. Check its network access and try again."
+        ? "The backend cannot connect to storage. Check its database connection and network access."
         : validation
           ? "Invalid request: " +
             err.issues
