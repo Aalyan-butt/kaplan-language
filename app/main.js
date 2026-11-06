@@ -3,7 +3,7 @@ import multer from "multer";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { getSettings } from "./config.js";
-import { MySQLStore } from "./mysql-store.js";
+import { createStore } from "./database.js";
 import { AccountService, publicUser } from "./service.js";
 import { GoogleWorkspaceArtifacts } from "./workspace.js";
 import { HttpError, iso, strength, passwordHash } from "./security.js";
@@ -55,7 +55,7 @@ export function createApp({ store, settings = getSettings(), workspace } = {}) {
     );
   app.use("/api", (req, res, next) => {
     if (!store) {
-      store = new MySQLStore(settings);
+      store = createStore(settings);
     }
     service ??= new AccountService(store, settings);
     workspace ??= store.google
@@ -516,6 +516,8 @@ export function createApp({ store, settings = getSettings(), workspace } = {}) {
       "ENOTFOUND",
       "EAI_AGAIN",
       "ETIMEDOUT",
+      "57P03",
+      "08006",
     ].includes(err.code);
     const quotaExceeded =
       err?.response?.data?.error?.status === "RESOURCE_EXHAUSTED" ||

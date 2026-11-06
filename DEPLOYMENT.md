@@ -1,3 +1,7 @@
+# Current Netlify deployment
+
+Use [HOSTED_DATABASE.md](HOSTED_DATABASE.md). Netlify automatically selects PostgreSQL; keep MySQL for local use. The PostgreSQL schema migration is committed under `netlify/database/migrations/`. Deploy the schema, then run the private one-time import from local MySQL. The older external-MySQL deployment instructions below are an alternative only if you explicitly select `DATABASE_PROVIDER=mysql` and configure a reachable hosted MySQL server.
+
 # MySQL deployment requirement
 
 The backend now uses MySQL. Configure `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD` and optionally `MYSQL_SSL=true` in your hosting environment. Import `sql/schema.sql` into the target database, adjusting the database name if necessary, and migrate existing records before switching traffic. Keep `APP_SECRET` configured.

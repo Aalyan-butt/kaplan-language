@@ -1,12 +1,12 @@
 import { getSettings } from "../app/config.js";
-import { MySQLStore } from "../app/mysql-store.js";
+import { createStore } from "../app/database.js";
 import { GoogleWorkspaceArtifacts } from "../app/workspace.js";
 import { analyseSubmission } from "../app/checker.js";
 import { assessSpeaking } from "../app/assessment.js";
 
 const apply = process.argv.includes("--apply");
 const settings = getSettings();
-const store = new MySQLStore(settings);
+const store = createStore(settings);
 const workspace = store.google
   ? new GoogleWorkspaceArtifacts(settings, store)
   : null;

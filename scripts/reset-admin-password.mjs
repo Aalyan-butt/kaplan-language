@@ -1,10 +1,10 @@
 import { getSettings } from "../app/config.js";
-import { MySQLStore } from "../app/mysql-store.js";
+import { createStore } from "../app/database.js";
 import { passwordHash, strength, iso } from "../app/security.js";
 import { AccountService } from "../app/service.js";
 import { prompt } from "./prompt.mjs";
 const settings = getSettings();
-const store = new MySQLStore(settings),
+const store = createStore(settings),
   email = (await prompt("Administrator email: ")).trim().toLowerCase(),
   user = await store.find("Users", "email", email);
 if (!user || user.role !== "admin")

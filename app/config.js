@@ -17,6 +17,12 @@ export function getSettings(env = process.env) {
     account_lock_minutes: number("ACCOUNT_LOCK_MINUTES", 2, 1, 1440),
     max_login_failures: number("MAX_LOGIN_FAILURES", 5, 3, 20),
   };
+  s.database_url = env.NETLIFY_DB_URL || env.DATABASE_URL || "";
+  s.database_provider =
+    env.DATABASE_PROVIDER ||
+    (s.database_url || env.NETLIFY ? "postgres" : "mysql");
+  if (!["mysql", "postgres"].includes(s.database_provider))
+    throw new Error("Invalid DATABASE_PROVIDER");
   s.mysql_host = env.MYSQL_HOST || "127.0.0.1";
   s.mysql_port = number("MYSQL_PORT", 3306, 1, 65535);
   s.mysql_database = env.MYSQL_DATABASE || "kaplan";

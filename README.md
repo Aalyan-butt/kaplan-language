@@ -1,3 +1,5 @@
+The hosted deployment uses **Netlify Database (PostgreSQL)**. Local development continues to use MySQL. Follow [HOSTED_DATABASE.md](HOSTED_DATABASE.md) for provisioning and the one-time data import. Deploying source code creates the schema; the migration command transfers your private records separately.
+
 # Kaplan English Placement
 
 The backend runs on Node.js and Express. Netlify serves the existing frontend and runs the API as a Node.js Function.
@@ -13,7 +15,7 @@ npm ci
 npm start
 ```
 
-Open http://localhost:3000. For a new checkout, copy `.env.example` to `.env`, configure `MYSQL_*`, and run `npm run setup:mysql -- --create-admin`. The backend uses MySQL. Google authorization is not required for login or local assessment storage. Never publish `.env` or OAuth client JSON files.
+Open http://localhost:3000. For a new checkout, copy `.env.example` to `.env`, configure `MYSQL_*`, and run `npm run setup:mysql -- --create-admin`. The backend uses MySQL locally and PostgreSQL on Netlify. Google authorization is not required for login or local assessment storage. Never publish `.env` or OAuth client JSON files.
 
 ## Keep existing data
 
