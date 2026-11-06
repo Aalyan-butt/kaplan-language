@@ -4,7 +4,7 @@ PostgreSQL is the application database both locally and on Netlify. The app uses
 
 ## Configuration
 
-Create a PostgreSQL database using your chosen host or local PostgreSQL installation. Add its private connection URL to `DATABASE_URL` in `.env` locally and in your backend hosting environment for production. Use the TLS URL supplied by your provider; do not disable certificate verification. Keep APP_SECRET configured and set FRONTEND_ORIGIN to the frontend origin, such as https://kaplan-language.netlify.app.
+Create a PostgreSQL database using your chosen host or local PostgreSQL installation. Add its private connection URL to `DATABASE_URL` in `.env` locally and in your backend hosting environment for production. Use the TLS URL supplied by your provider; do not disable certificate verification. Keep APP_SECRET configured and set FRONTEND_ORIGIN to the frontend origin, using your deployed site URL.
 
 The code also accepts NETLIFY_DB_URL for an existing managed database, but DATABASE_URL takes precedence. DATABASE_PROVIDER and MYSQL_* no longer select the runtime store. MYSQL_* are retained only for migration tools.
 
