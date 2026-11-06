@@ -5,6 +5,10 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # Legacy local MySQL connection labels are not secrets. Imported .env values
+  # such as loopback addresses, standard ports and database names cause matches.
+  # Passwords, PostgreSQL URLs and APP_SECRET remain scanned.
+  SECRETS_SCAN_OMIT_KEYS = "MYSQL_HOST,MYSQL_PORT,MYSQL_USER,MYSQL_DATABASE"
 
 [functions]
   node_bundler = "esbuild"

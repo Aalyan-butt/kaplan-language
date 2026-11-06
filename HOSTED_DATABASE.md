@@ -44,3 +44,8 @@ The former @netlify/database package and automatic Netlify database migrations h
 `npm test` includes PostgreSQL integration tests using the PGlite PostgreSQL engine. To additionally run legacy MySQL tests, set MYSQL_INTEGRATION=1. Run `npm run build` and `npm run check:netlify` for frontend and function package checks. A real hosted connection is still required to verify production connectivity.
 
 Google-generated PDFs remain an optional integration; in-app reports and recordings use PostgreSQL. Schedule database backups with your provider. Keep `.env`, connection URLs and private database exports out of GitHub.
+
+
+## Imported .env and secret scanning
+
+Only DATABASE_URL, APP_SECRET, FRONTEND_ORIGIN and the runtime settings are needed for the PostgreSQL deployment. MYSQL_* variables are used only for the local one-time migration and can be removed from Netlify. Importing them as secrets can flag harmless default host, port, username and database names throughout the repository. netlify.toml excludes those four labels from value scanning; passwords, PostgreSQL connection URLs and app secrets remain protected. Secret scanning itself stays enabled.
