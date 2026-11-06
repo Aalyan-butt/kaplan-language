@@ -1,8 +1,8 @@
-# Current storage: MySQL
+# Current storage: PostgreSQL
 
-The application now uses MySQL for accounts, sessions, results, audit records and recordings. Follow [MYSQL_GUIDE.md](MYSQL_GUIDE.md). Run `node scripts/reset-admin-password.mjs` to reset a MySQL administrator password. Google authorization is not required for this operation.
+The application uses PostgreSQL for accounts, sessions, results, audit records and recordings. Follow [HOSTED_DATABASE.md](HOSTED_DATABASE.md). Run `node scripts/reset-admin-password.mjs` to reset a PostgreSQL administrator password. Google authorization is not required for this operation.
 
-The Google instructions below are retained for legacy imports and optional Drive/Docs integrations. `setup-google.mjs` manages the legacy Google storage; it does not create MySQL accounts.
+The Google instructions below are retained for legacy imports and optional Drive/Docs integrations. `setup-google.mjs` manages the legacy Google storage; it does not create PostgreSQL accounts.
 
 # Administrator guide
 

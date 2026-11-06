@@ -1,10 +1,10 @@
-The hosted deployment uses **Netlify Database (PostgreSQL)**. Local development continues to use MySQL. Follow [HOSTED_DATABASE.md](HOSTED_DATABASE.md) for provisioning and the one-time data import. Deploying source code creates the schema; the migration command transfers your private records separately.
+The application uses **PostgreSQL** locally and in production. Follow [HOSTED_DATABASE.md](HOSTED_DATABASE.md) for configuration, schema setup and the one-time import from the previous MySQL installation.
 
 # Kaplan English Placement
 
 The backend runs on Node.js and Express. Netlify serves the existing frontend and runs the API as a Node.js Function.
 
-Preserved features include student/admin accounts, Argon2 passwords, idle sessions and CSRF checks, account lockout, bulk imports, attempt allowances, writing and speaking evidence scoring, MySQL accounts, sessions, results, audit records and MP3s, optional Google Drive/Docs reports and PDF exports, teacher overrides and CSV exports.
+Preserved features include student/admin accounts, Argon2 passwords, idle sessions and CSRF checks, account lockout, bulk imports, attempt allowances, writing and speaking evidence scoring, PostgreSQL accounts, sessions, results, audit records and MP3s, optional Google Drive/Docs reports and PDF exports, teacher overrides and CSV exports.
 
 ## Run locally
 
@@ -15,11 +15,11 @@ npm ci
 npm start
 ```
 
-Open http://localhost:3000. For a new checkout, copy `.env.example` to `.env`, configure `MYSQL_*`, and run `npm run setup:mysql -- --create-admin`. The backend uses MySQL locally and PostgreSQL on Netlify. Google authorization is not required for login or local assessment storage. Never publish `.env` or OAuth client JSON files.
+Open http://localhost:3000. For a new checkout, copy `.env.example` to `.env`, configure `DATABASE_URL`, and run `npm run setup:postgres -- --create-admin`. The backend uses PostgreSQL. Google authorization is not required for login or local assessment storage. Never publish `.env` or OAuth client JSON files.
 
 ## Keep existing data
 
-See [MYSQL_GUIDE.md](MYSQL_GUIDE.md) for the one-time Google-to-MySQL migration. Existing Argon2 password hashes are preserved. Google originals are retained; sessions are not imported, so users sign in again.
+See [HOSTED_DATABASE.md](HOSTED_DATABASE.md) for the MySQL-to-PostgreSQL migration. Existing Argon2 password hashes are preserved. Google originals are retained; sessions are not imported, so users sign in again.
 
 ## Deploy
 
@@ -34,7 +34,7 @@ npm run build
 
 Regression tests compare complete placement checker reports against 93 reference samples. API tests cover authentication, roles, account administration, submissions, recording chunks, reports and exports. Adapter tests exercise Netlify request routing and binary responses. Tests use an isolated in-memory store and do not change live Google data.
 
-MySQL setup and migration are described in [MYSQL_GUIDE.md](MYSQL_GUIDE.md). Administrator password recovery uses `node scripts/reset-admin-password.mjs` against MySQL.
+PostgreSQL setup and migration are described in [HOSTED_DATABASE.md](HOSTED_DATABASE.md). Administrator password recovery uses `node scripts/reset-admin-password.mjs` against PostgreSQL.
 
 Run `npm run check:google` to verify OAuth, all eight Sheet header schemas and Drive upload permissions against your configured storage. This check is read-only and does not print credentials or student records.
 

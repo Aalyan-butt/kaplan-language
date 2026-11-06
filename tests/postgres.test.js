@@ -9,23 +9,22 @@ import { getSettings } from "../app/config.js";
 import { AccountService } from "../app/service.js";
 import { createApp } from "../app/main.js";
 
-test("database selection uses PostgreSQL on Netlify and keeps local MySQL", () => {
+test("database selection always uses PostgreSQL and requires a connection URL", () => {
   const local = getSettings({
     APP_SECRET: "test-secret-long-enough-for-config",
   });
-  assert.equal(local.database_provider, "mysql");
+  assert.equal(local.database_provider, "postgres");
   const hosted = getSettings({
     NETLIFY: "true",
     APP_SECRET: "test-secret-long-enough-for-config",
   });
   assert.equal(hosted.database_provider, "postgres");
-  assert.throws(() => createStore(hosted), /Enable Netlify Database/);
+  assert.throws(() => createStore(hosted), /Set DATABASE_URL/);
 });
 test("PostgreSQL login, sessions, updates, uniqueness and durable recordings work without Google", async () => {
   const db = new PGlite();
   const settings = getSettings({
     APP_SECRET: "test-secret-long-enough-for-config",
-    DATABASE_PROVIDER: "postgres",
   });
   const store = new PostgresStore(settings, {
     query: (sql, params) => db.query(sql, params),
@@ -34,13 +33,7 @@ test("PostgreSQL login, sessions, updates, uniqueness and durable recordings wor
   let server;
   try {
     await db.exec(
-      await readFile(
-        new URL(
-          "../netlify/database/migrations/20261106000100_application.sql",
-          import.meta.url,
-        ),
-        "utf8",
-      ),
+      await readFile(new URL("../sql/postgres.sql", import.meta.url), "utf8"),
     );
     const svc = new AccountService(store, settings);
     await svc.createUser({

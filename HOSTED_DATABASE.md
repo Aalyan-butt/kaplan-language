@@ -1,35 +1,46 @@
-# Hosted database setup for kaplan-language
+# PostgreSQL setup
 
-The app automatically uses PostgreSQL on Netlify, and MySQL for local development. Google authorization is not needed for login or assessment storage.
+PostgreSQL is the application database both locally and on Netlify. The app uses the standard `pg` driver; it does not provision Netlify Database or require that paid feature. Google authorization is optional for Drive/Docs and is never required for login.
 
-## Deploy schema
+## Configuration
 
-The `@netlify/database` dependency enables Netlify's managed PostgreSQL integration. The committed migration at `netlify/database/migrations/20261106000100_application.sql` creates empty tables during deployment. No passwords, student data or recordings are included in this file.
+Create a PostgreSQL database using your chosen host or local PostgreSQL installation. Add its private connection URL to `DATABASE_URL` in `.env` locally and in your backend hosting environment for production. Use the TLS URL supplied by your provider; do not disable certificate verification. Keep APP_SECRET configured and set FRONTEND_ORIGIN to the frontend origin, such as https://kaplan-language.netlify.app.
 
-1. Enable Netlify Database for the `kaplan-language` project (Data & Storage > Database) if it is not automatically provisioned during deployment. Netlify Database requires a supported credit-based plan and consumes usage credits; review the dashboard's billing information before enabling a paid upgrade.
-2. Deploy this code. Keep `APP_SECRET` set, set `GOOGLE_ARTIFACTS=false`, and use `FRONTEND_ORIGIN=https://kaplan-language.netlify.app` for the hosted frontend.
-3. Remove an explicit `DATABASE_PROVIDER=mysql` override if present, or change it to `postgres`. Netlify supplies `NETLIFY_DB_URL` automatically. Do not copy local `MYSQL_HOST=127.0.0.1` into a hosted database configuration.
+The code also accepts NETLIFY_DB_URL for an existing managed database, but DATABASE_URL takes precedence. DATABASE_PROVIDER and MYSQL_* no longer select the runtime store. MYSQL_* are retained only for migration tools.
 
-The app returns a clear configuration error if the hosted database has not been provisioned. The schema alone does not create accounts; import the existing MySQL data next.
-
-## Copy existing data once
-
-After the schema has deployed, retrieve the production PostgreSQL connection URL from the Netlify database dashboard or the authenticated Netlify CLI. Keep it private. Set `DATABASE_URL` in your local PowerShell session (never in a committed file), then run:
+## Existing installation: preserve accounts and recordings
 
 ```
+npm ci
+npm run setup:postgres
 npm run migrate:postgres
+npm start
 ```
 
-The script reads the local MySQL configured in `.env`, and copies all existing tabular data except sessions, plus completed recordings, into PostgreSQL in one transaction. It refuses a nonempty destination and never changes or deletes MySQL records. Keep local users from editing records during the import. Imported password hashes are unchanged; users sign in with existing passwords. Active sessions are intentionally excluded, so users sign in again. Incomplete recording uploads are not copied.
+`setup:postgres` creates the tables in the selected database using `sql/postgres.sql`. It does not create the database server itself and does not erase existing records. You can alternatively import that SQL file with your provider's SQL editor.
 
-After importing, sign in on the hosted site and check results and audio before allowing students to use it. If the import fails, the PostgreSQL transaction is rolled back. Original MySQL and Google data remain available.
+`migrate:postgres` reads the previous local MySQL database configured by MYSQL_*, then copies accounts, unchanged Argon2 password hashes, results, settings, lessons, audit records, jobs and completed recordings into PostgreSQL in one transaction. The destination must have empty application tables; importing into a populated destination is refused. Original MySQL data is never deleted. Existing sessions and incomplete uploads are excluded; users sign in again. Keep users from editing source data during the one-time import.
 
-## Local development
+Do not create an administrator before importing existing accounts. No private data or password hashes should be committed to GitHub.
 
-Leave DATABASE_PROVIDER, DATABASE_URL and NETLIFY_DB_URL unset to keep local MySQL. Alternatively, point DATABASE_URL at a separate PostgreSQL development database. Do not point local automated tests at the production database.
+## Fresh installation
 
-## Verification and maintenance
+```
+npm ci
+npm run setup:postgres -- --create-admin
+npm start
+```
 
-`npm test` includes PostgreSQL schema and application tests using PGlite, a local PostgreSQL engine. `MYSQL_INTEGRATION=1` additionally enables the real local MySQL tests. Run `npm run build` and `npm run check:netlify` to verify frontend build and function packaging. Hosted provisioning and network connectivity still require a real deployment smoke test.
+Enter the admin email, name and password at the terminal prompts. Passwords are hashed with Argon2. This option also adds the lesson bank.
 
-Manage database backups and restore options in Netlify. The local `.env`, hosted connection URL and private database exports must never be committed to GitHub. Google-generated PDF exports remain optional; normal reports and audio use the application database.
+## Netlify deployment
+
+Set DATABASE_URL, APP_SECRET, FRONTEND_ORIGIN and GOOGLE_ARTIFACTS=false in Netlify. Create the schema and import existing data before directing users to the new deployment. Then deploy the code. A PostgreSQL server on your PC is not reachable as 127.0.0.1 from Netlify; production requires a network-accessible database. Hosting, provisioning, billing and deployment are managed separately from these code changes.
+
+The former @netlify/database package and automatic Netlify database migrations have been removed, preventing the previous unsupported-account provisioning error. Your local MySQL installation and its original records remain unchanged.
+
+## Checks and limitations
+
+`npm test` includes PostgreSQL integration tests using the PGlite PostgreSQL engine. To additionally run legacy MySQL tests, set MYSQL_INTEGRATION=1. Run `npm run build` and `npm run check:netlify` for frontend and function package checks. A real hosted connection is still required to verify production connectivity.
+
+Google-generated PDFs remain an optional integration; in-app reports and recordings use PostgreSQL. Schedule database backups with your provider. Keep `.env`, connection URLs and private database exports out of GitHub.

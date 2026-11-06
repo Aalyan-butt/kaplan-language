@@ -1,22 +1,10 @@
-import { MySQLStore } from "./mysql-store.js";
 import { PostgresStore } from "./postgres-store.js";
 import { HttpError } from "./security.js";
 export function createStore(settings) {
-  if (settings.database_provider === "postgres") {
-    if (!settings.database_url)
-      throw new HttpError(
-        503,
-        "Hosted database is not configured. Enable Netlify Database and redeploy.",
-      );
-    return new PostgresStore(settings);
-  }
-  if (
-    process.env.NETLIFY &&
-    ["localhost", "127.0.0.1", "::1"].includes(settings.mysql_host)
-  )
+  if (!settings.database_url)
     throw new HttpError(
       503,
-      "Netlify cannot use MySQL on your PC. Configure a hosted database.",
+      "PostgreSQL is not configured. Set DATABASE_URL in the backend environment and restart or redeploy.",
     );
-  return new MySQLStore(settings);
+  return new PostgresStore(settings);
 }

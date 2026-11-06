@@ -1,5 +1,4 @@
 import pg from "pg";
-import { getConnectionString } from "@netlify/database";
 const { Pool } = pg;
 import { SHEET_HEADERS } from "./constants.js";
 import { cell, googleClients } from "./store.js";
@@ -13,7 +12,7 @@ export class PostgresStore {
     this.pool =
       pool ||
       new Pool({
-        connectionString: settings.database_url || getConnectionString(),
+        connectionString: settings.database_url,
         max: 5,
         connectionTimeoutMillis: 10000,
         idleTimeoutMillis: 30000,

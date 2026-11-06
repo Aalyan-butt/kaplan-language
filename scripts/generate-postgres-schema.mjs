@@ -37,8 +37,5 @@ CREATE TABLE IF NOT EXISTS "Recordings" (
  PRIMARY KEY(submission_id, answer_number)
 );
 `;
-await mkdir("netlify/database/migrations", { recursive: true });
-await writeFile(
-  "netlify/database/migrations/20261106000100_application.sql",
-  sql,
-);
+await mkdir("sql", { recursive: true });
+await writeFile("sql/postgres.sql", sql);

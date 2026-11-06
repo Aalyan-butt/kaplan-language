@@ -1,3 +1,5 @@
+> Legacy migration reference: the runtime now uses PostgreSQL. Follow [HOSTED_DATABASE.md](HOSTED_DATABASE.md). These MySQL instructions apply only to the source database and legacy tooling.
+
 # MySQL setup and migration
 
 The runtime uses MySQL for all tabular records, including users, Argon2 password hashes, sessions, results and audit logs. With `GOOGLE_ARTIFACTS=false`, audio chunks and completed recordings are stored in MySQL too. No Google request is needed to sign in.

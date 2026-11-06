@@ -5,7 +5,7 @@ import { SHEET_HEADERS } from "../app/constants.js";
 const settings = getSettings();
 if (!settings.database_url)
   throw new Error(
-    "Set DATABASE_URL to the hosted PostgreSQL connection URL in your private environment. Deploy the schema migration first.",
+    "Set DATABASE_URL to the hosted PostgreSQL connection URL in your private environment. Run npm run setup:postgres first.",
   );
 const source = new MySQLStore({ ...settings, google_artifacts: false }),
   destination = new PostgresStore(settings);

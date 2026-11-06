@@ -17,10 +17,10 @@
     "backfill:reports": "node scripts/backfill-reports.mjs",
     "setup:mysql": "node scripts/setup-mysql.mjs",
     "migrate:mysql": "node scripts/migrate-google-to-mysql.mjs",
-    "migrate:postgres": "node scripts/migrate-mysql-to-postgres.mjs"
+    "migrate:postgres": "node scripts/migrate-mysql-to-postgres.mjs",
+    "setup:postgres": "node scripts/setup-postgres.mjs"
   },
   "dependencies": {
-    "@netlify/database": "^2.0.2",
     "@node-rs/argon2": "^2.0.2",
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
