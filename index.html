@@ -2424,7 +2424,15 @@
           }
         };
       }
-      function printReportPdf() {
+      function printReportPdf(box) {
+        const studentName = (
+          box.closest(".report-modal")?.querySelector("h2")?.textContent ||
+          "Student"
+        ).trim();
+        const filename =
+          studentName
+            .replace(/[<>:"/\\|?*\x00-\x1f]/g, "-")
+            .replace(/[. ]+$/g, "") || "Student";
         if (document.querySelector("#pdfLayoutDialog")) return;
         const dialog = document.createElement("dialog");
         dialog.id = "pdfLayoutDialog";
@@ -2446,7 +2454,23 @@
             }
             pageStyle.textContent = `@page { size: A4 ${orientation}; margin: 24mm 18mm 18mm; }`;
             dialog.close();
-            requestAnimationFrame(() => window.print());
+            requestAnimationFrame(() => {
+              const originalTitle = document.title;
+              const restoreTitle = () => {
+                document.title = originalTitle;
+              };
+              document.title = `${filename} - Placement Report`;
+              window.addEventListener("afterprint", restoreTitle, {
+                once: true,
+              });
+              try {
+                window.print();
+              } catch (error) {
+                window.removeEventListener("afterprint", restoreTitle);
+                restoreTitle();
+                throw error;
+              }
+            });
           };
         });
         dialog.showModal();
