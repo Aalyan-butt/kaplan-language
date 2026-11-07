@@ -534,7 +534,7 @@ export function analyse(
     if (lessons.length === 3) break;
   }
   return {
-    checker_version: "rules-1.1",
+    checker_version: "rules-1.2",
     formula_version: "kaplan-1.1",
     metrics: {
       word_count: count,

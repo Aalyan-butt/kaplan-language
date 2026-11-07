@@ -357,7 +357,7 @@ test("multipart submission, reports, overrides, CSV and idempotent retry", async
   assert.equal(
     (await request("/api/v1/admin/results/" + id + "/pdf", { headers: admin }))
       .status,
-    409,
+    200,
   );
   assert.equal(
     (
@@ -555,4 +555,98 @@ test("PDF download enforces verification and returns a valid PDF response", asyn
   assert.equal(result.status, 200);
   assert.match(result.headers.get("content-type"), /application\/pdf/);
   assert.match(result.text, /^%PDF-/);
+});
+
+test("admin deletion removes accounts and report dependencies", async (t) => {
+  const { request, login, store } = await fixture(t);
+  const admin = await login();
+  const student = await login("student@example.com", "Student!Pass1");
+  const account = await store.find("Users", "email", "student@example.com");
+  await store.append("Results", {
+    submission_id: "delete-me",
+    user_id: account.user_id,
+  });
+  await store.append("Errors", { error_id: "e", submission_id: "delete-me" });
+  assert.equal(
+    (
+      await request("/api/v1/admin/results/delete-me", {
+        method: "DELETE",
+        headers: student,
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request("/api/v1/admin/results/delete-me", {
+        method: "DELETE",
+        headers: admin,
+      })
+    ).status,
+    200,
+  );
+  assert.equal((await store.all("Errors")).length, 0);
+  assert.equal(
+    (
+      await request("/api/v1/admin/users/" + account.user_id, {
+        method: "DELETE",
+        headers: admin,
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    await store.find("Users", "user_id", account.user_id),
+    undefined,
+  );
+  assert.equal(
+    (await store.all("Sessions")).some((s) => s.user_id === account.user_id),
+    false,
+  );
+});
+
+test("legacy scores agree across results list, report and CSV without opening reports first", async (t) => {
+  const { request, login, store } = await fixture(t);
+  const headers = await login();
+  await store.append("Results", {
+    submission_id: "stale-grade",
+    name: "Legacy Student",
+    submitted_at: "2026-11-07",
+    writing_answer:
+      "My last day at my college is memorable day in my life because I will started new states in my life. My teachers also advice to pay attention. She also advice us to achieve aim in life.",
+    total_score: 16,
+    suggested_level: "B1",
+    grammar_score: 5,
+    teacher_level: "B2",
+    report_json: JSON.stringify({
+      total: 16,
+      level: "B1",
+      scores: { grammar: 5 },
+    }),
+  });
+  const list = await request("/api/v1/admin/results", { headers });
+  const summary = list.data.results.find(
+    (r) => r.submission_id === "stale-grade",
+  );
+  assert.notEqual(summary.total_score, 16);
+  const detail = await request("/api/v1/admin/results/stale-grade", {
+    headers,
+  });
+  const report = detail.data.report.writing;
+  assert.equal(summary.total_score, report.total);
+  assert.equal(summary.suggested_level, report.level);
+  assert.equal(summary.grammar_score, report.scores.grammar);
+  assert.equal(
+    summary.speaking_auto_score,
+    report.speaking_assessment.overall_score,
+  );
+  assert.equal(detail.data.result.total_score, report.total);
+  assert.equal(summary.teacher_level, "B2");
+  const csv = await request("/api/v1/admin/exports/results.csv", { headers });
+  const lines = csv.text
+    .trim()
+    .split("\r\n")
+    .map((line) => line.slice(1, -1).split('","'));
+  assert.equal(lines[1][lines[0].indexOf("total_score")], String(report.total));
+  assert.equal(lines[1][lines[0].indexOf("suggested_level")], report.level);
 });

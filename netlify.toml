@@ -12,7 +12,7 @@
 
 [functions]
   node_bundler = "esbuild"
-  external_node_modules = ["@node-rs/argon2"]
+  external_node_modules = ["@node-rs/argon2", "pdfkit"]
   included_files = ["!.env", "!.env.*", "!client_secret*.json", "!*.log", "!.local-audio/**"]
 
 [[redirects]]

@@ -1,4 +1,5 @@
 import express from "express";
+import { createReportPdf } from "./report-pdf.js";
 import multer from "multer";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
@@ -8,6 +9,7 @@ import { AccountService, publicUser } from "./service.js";
 import { GoogleWorkspaceArtifacts } from "./workspace.js";
 import { HttpError, iso, strength, passwordHash } from "./security.js";
 import { validate } from "./models.js";
+import { assessResult } from "./result-assessment.js";
 import { createSubmission } from "./submissions.js";
 import { RESULT_HEADERS } from "./constants.js";
 import { z } from "zod";
@@ -30,7 +32,7 @@ export function createApp({ store, settings = getSettings(), workspace } = {}) {
     if (req.get("origin") === settings.frontend_origin) {
       res.set({
         "Access-Control-Allow-Origin": settings.frontend_origin,
-        "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
+        "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
         "Access-Control-Allow-Headers":
           "Authorization,Content-Type,X-CSRF-Token,X-Request-ID",
         "Access-Control-Expose-Headers": "X-Request-ID",
@@ -143,6 +145,50 @@ export function createApp({ store, settings = getSettings(), workspace } = {}) {
     res.json({ ok: true });
   });
   app.use("/api/v1/admin", auth, csrf, admin);
+  const deleteReport = async (row) => {
+    if (workspace?.drive) {
+      const ids = [
+        row.audio_folder_url?.match(/\/folders\/([\w-]+)/)?.[1],
+        row.doc_url?.match(/\/document\/d\/([\w-]+)/)?.[1],
+      ].filter(Boolean);
+      for (const fileId of new Set(ids))
+        await workspace.drive.files.update({
+          fileId,
+          requestBody: { trashed: true },
+        });
+    }
+    for (const table of ["Errors", "Jobs", "Results"])
+      await store.remove(table, "submission_id", row.submission_id);
+  };
+  app.delete("/api/v1/admin/results/:id", async (req, res) => {
+    const row = await result(req.params.id);
+    await deleteReport(row);
+    await service.audit("REPORT_DELETED", req.user, {}, true, {
+      submission_id: row.submission_id,
+    });
+    res.json({ ok: true });
+  });
+  app.delete("/api/v1/admin/users/:id", async (req, res) => {
+    const account = await target(req.params.id);
+    if (account.user_id === req.user.user_id)
+      throw new HttpError(
+        409,
+        "You cannot delete your own administrator account.",
+      );
+    if (
+      account.role === "admin" &&
+      (await store.all("Users")).filter(
+        (u) => u.role === "admin" && u.status === "active",
+      ).length <= 1
+    )
+      throw new HttpError(409, "Keep at least one active administrator.");
+    for (const row of await store.all("Results"))
+      if (row.user_id === account.user_id) await deleteReport(row);
+    await store.remove("Sessions", "user_id", account.user_id);
+    await store.remove("Users", "user_id", account.user_id);
+    await service.audit("ACCOUNT_DELETED", req.user, account);
+    res.json({ ok: true });
+  });
   app.get("/api/v1/admin/users", async (req, res) => {
     const users = (await store.all("Users"))
       .map(publicUser)
@@ -371,6 +417,7 @@ export function createApp({ store, settings = getSettings(), workspace } = {}) {
     ];
     res.json({
       results: (await store.all("Results"))
+        .map((row) => assessResult(row).row)
         .map((r) =>
           Object.fromEntries(
             Object.entries(r).filter(([k]) => !excluded.includes(k)),
@@ -380,11 +427,7 @@ export function createApp({ store, settings = getSettings(), workspace } = {}) {
     });
   });
   app.get("/api/v1/admin/results/:id", async (req, res) => {
-    const row = await result(req.params.id);
-    let report = {};
-    try {
-      report = JSON.parse(row.report_json || "{}");
-    } catch {}
+    const { row, report } = assessResult(await result(req.params.id));
     const generatedErrors = [
       ...(report.issues || []),
       ...(report.speaking_language || []).flatMap(
@@ -414,18 +457,7 @@ export function createApp({ store, settings = getSettings(), workspace } = {}) {
   });
   app.get("/api/v1/admin/results/:id/pdf", async (req, res) => {
     const row = await result(req.params.id);
-    if (!workspace)
-      throw new HttpError(409, "PDF export requires Google storage.");
-    let content;
-    try {
-      content = await workspace.exportReportPdf(row.doc_url);
-    } catch (e) {
-      if (e instanceof HttpError) throw e;
-      throw new HttpError(
-        503,
-        "The PDF could not be exported from Google Drive. Try again.",
-      );
-    }
+    const content = await createReportPdf(row);
     const filename = row.name.replace(/[^\p{L}\p{N}_-]/gu, "-") || "student";
     await service.audit("REPORT_PDF_DOWNLOADED", req.user, {}, true, {
       submission_id: req.params.id,
@@ -489,9 +521,10 @@ export function createApp({ store, settings = getSettings(), workspace } = {}) {
     const csv =
       [
         headers,
-        ...(await store.all("Results")).map((r) =>
-          headers.map((h) => safe(r[h])),
-        ),
+        ...(await store.all("Results")).map((stored) => {
+          const r = assessResult(stored).row;
+          return headers.map((h) => safe(r[h]));
+        }),
       ]
         .map((row) => row.map(quote).join(","))
         .join("\r\n") + "\r\n";

@@ -48,6 +48,9 @@ export class MemoryStore {
   async appendMany(sheet, records) {
     for (const r of records) await this.append(sheet, r);
   }
+  async remove(sheet, key, value) {
+    this.data[sheet] = this.data[sheet].filter((row) => row[key] !== value);
+  }
   async update(sheet, key, value, changes) {
     const row = this.data[sheet].find((r) =>
       key === "email"
@@ -87,6 +90,25 @@ export class GoogleSheetStore extends MemoryStore {
     } finally {
       this.readsInFlight.delete(sheet);
     }
+  }
+  async remove(sheet, key, value) {
+    const headers = SHEET_HEADERS[sheet];
+    if (!headers?.includes(key)) throw new Error("Invalid storage field.");
+    const { data } = await this.sheets.spreadsheets.values.get({
+      spreadsheetId: this.id,
+      range: `'${sheet}'!A2:${column(headers.length)}`,
+    });
+    const ranges = (data.values || []).flatMap((row, index) =>
+      row[headers.indexOf(key)] === value
+        ? [`'${sheet}'!A${index + 2}:${column(headers.length)}${index + 2}`]
+        : [],
+    );
+    if (ranges.length)
+      await this.sheets.spreadsheets.values.batchClear({
+        spreadsheetId: this.id,
+        requestBody: { ranges },
+      });
+    this.readCache.delete(sheet);
   }
   async readSheet(sheet) {
     const headers = SHEET_HEADERS[sheet];

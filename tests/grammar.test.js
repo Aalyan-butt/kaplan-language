@@ -110,3 +110,28 @@ test("speaking transcripts do not receive sentence-start capitalisation errors",
   );
   assert.ok(report.issues.some((issue) => issue.rule_id === "capital-i"));
 });
+
+test("reported learner errors reduce grammar marks", () => {
+  const report = analyse(
+    "My last day at my college is memorable day in my life because I will started new states in my life. My teachers also advice to pay attention. She also advice us to achieve aim in life.",
+  );
+  assert.ok(report.scores.grammar <= 2, JSON.stringify(report.scores));
+  for (const rule of [
+    "modal-regular-base",
+    "memorable-article",
+    "advice-verb",
+    "achieve-aim",
+  ])
+    assert.ok(
+      report.issues.some((i) => i.rule_id === rule),
+      rule,
+    );
+  assert.ok(
+    analyse("I will do to get skills in MS Word", "speaking_1").scores.grammar <
+      5,
+  );
+  assert.ok(
+    analyse("yes my favourite hobbies Garden because it helps", "speaking_2")
+      .scores.grammar < 5,
+  );
+});

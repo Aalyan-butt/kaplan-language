@@ -27,6 +27,7 @@
     "googleapis": "^160.0.0",
     "multer": "^2.0.2",
     "mysql2": "^3.24.6",
+    "pdfkit": "^0.20.2",
     "pg": "^8.23.1",
     "serverless-http": "^4.0.0",
     "zod": "^4.1.12"

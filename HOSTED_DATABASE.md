@@ -43,7 +43,7 @@ The former @netlify/database package and automatic Netlify database migrations h
 
 `npm test` includes PostgreSQL integration tests using the PGlite PostgreSQL engine. To additionally run legacy MySQL tests, set MYSQL_INTEGRATION=1. Run `npm run build` and `npm run check:netlify` for frontend and function package checks. A real hosted connection is still required to verify production connectivity.
 
-Google-generated PDFs remain an optional integration; in-app reports and recordings use PostgreSQL. Schedule database backups with your provider. Keep `.env`, connection URLs and private database exports out of GitHub.
+PDF downloads are generated directly by the app with A4 margins and pagination; Google access is not required. Optional Google Docs copies remain available. In-app reports and recordings use PostgreSQL. Schedule database backups with your provider. Keep `.env`, connection URLs and private database exports out of GitHub.
 
 
 ## Imported .env and secret scanning

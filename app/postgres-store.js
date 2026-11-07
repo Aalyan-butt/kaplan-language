@@ -65,6 +65,20 @@ export class PostgresStore {
     );
     return result.rowCount > 0;
   }
+  async remove(table, key, value) {
+    this.columns(table, key);
+    await this.pool.query(
+      `DELETE FROM ${identifier(table)} WHERE ${identifier(key)} = $1`,
+      [cell(value)],
+    );
+    if (table === "Results") {
+      for (const extra of ["Recordings", "AudioChunks"])
+        await this.pool.query(
+          `DELETE FROM ${identifier(extra)} WHERE submission_id = $1`,
+          [cell(value)],
+        );
+    }
+  }
   async setResultHyperlinks(id, urls) {
     await this.update(
       "Results",

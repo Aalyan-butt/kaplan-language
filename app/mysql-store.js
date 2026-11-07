@@ -67,6 +67,20 @@ export class MySQLStore {
     );
     return result.affectedRows > 0;
   }
+  async remove(table, key, value) {
+    this.columns(table, key);
+    await this.pool.execute(
+      `DELETE FROM ${identifier(table)} WHERE ${identifier(key)} = ?`,
+      [cell(value)],
+    );
+    if (table === "Results") {
+      for (const extra of ["Recordings", "AudioChunks"])
+        await this.pool.execute(
+          `DELETE FROM ${identifier(extra)} WHERE submission_id = ?`,
+          [cell(value)],
+        );
+    }
+  }
   async setResultHyperlinks(id, urls) {
     await this.update(
       "Results",

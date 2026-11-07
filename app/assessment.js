@@ -164,7 +164,7 @@ export function assessSpeaking(
       ).length,
       sentence =
         sentenceIssues === 0
-          ? 5
+          ? Math.min(5, grammar + 1)
           : sentenceIssues === 1
             ? 4
             : sentenceIssues === 2

@@ -21,7 +21,7 @@ test("Stricter checker preserves reference metrics and established corrections",
         ),
         `Fixture ${i} lost ${issue.rule_id}`,
       );
-    assert.equal(report.checker_version, "rules-1.1");
+    assert.equal(report.checker_version, "rules-1.2");
   }
 });
 test("lesson bank and speaking evidence", () => {

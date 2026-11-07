@@ -4,18 +4,32 @@ The application uses **PostgreSQL** locally and in production. Follow [HOSTED_DA
 
 The backend runs on Node.js and Express. Netlify serves the existing frontend and runs the API as a Node.js Function.
 
-Preserved features include student/admin accounts, Argon2 passwords, idle sessions and CSRF checks, account lockout, bulk imports, attempt allowances, writing and speaking evidence scoring, PostgreSQL accounts, sessions, results, audit records and MP3s, optional Google Drive/Docs reports and PDF exports, teacher overrides and CSV exports.
+Preserved features include student/admin accounts, Argon2 passwords, idle sessions and CSRF checks, account lockout, bulk imports, attempt allowances, writing and speaking evidence scoring, PostgreSQL accounts, sessions, results, audit records and MP3s, PDF exports, optional Google Drive/Docs reports, teacher overrides and CSV exports.
 
 ## Run locally
 
-Install Node.js 22 or newer, then:
+Install Node.js 22 or newer and PostgreSQL (or use a hosted PostgreSQL database).
 
-```sh
-npm ci
-npm start
+In PowerShell, from this project folder:
+
+```powershell
+npm.cmd ci
+# Only when .env does not already exist:
+Copy-Item .env.example .env
 ```
 
-Open http://localhost:3000. For a new checkout, copy `.env.example` to `.env`, configure `DATABASE_URL`, and run `npm run setup:postgres -- --create-admin`. The backend uses PostgreSQL. Google authorization is not required for login or local assessment storage. Never publish `.env` or OAuth client JSON files.
+Edit `.env` and set `DATABASE_URL` to your PostgreSQL connection URL, `APP_SECRET` to a random secret of at least 32 characters, and `FRONTEND_ORIGIN=http://localhost:3000`. Keep `PORT=3000`. The database must already exist; setup creates its tables, not the PostgreSQL server or database.
+
+For a fresh database, create the tables and your administrator account:
+
+```powershell
+npm.cmd run setup:postgres -- --create-admin
+npm.cmd start
+```
+
+Enter the administrator details when prompted, then open http://localhost:3000 and sign in. For a database that already has accounts, run `npm.cmd run setup:postgres` without `--create-admin`, then start the app and use your existing login. For automatic server restart during development, use `npm.cmd run dev`.
+
+`npm.cmd` works in PowerShell even when script execution policy blocks `npm.ps1`. Google authorization is not required for login, assessments, recordings or PDF downloads. Keep `GOOGLE_ARTIFACTS=false` unless you also want optional Google Drive/Docs copies. Never publish `.env` or OAuth client JSON files.
 
 ## Keep existing data
 

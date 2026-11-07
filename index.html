@@ -951,10 +951,12 @@
       }
       .audio-evidence {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
         gap: 10px;
       }
       .audio-evidence > div {
+        min-width: 0;
+        overflow-wrap: anywhere;
         padding: 13px;
         background: var(--wash);
         border-radius: 12px;
@@ -983,6 +985,9 @@
         padding: 20px;
         border-radius: 16px;
         background: #f7f2f3;
+      }
+      .override-box .actions {
+        margin-top: 18px;
       }
       .override-box textarea {
         min-height: 100px;
@@ -1089,7 +1094,69 @@
           scroll-behaviour: auto !important;
         }
       }
+      @page {
+        size: A4;
+        margin: 24mm 18mm 18mm;
+      }
       @media print {
+        html,
+        body {
+          height: auto !important;
+          overflow: visible !important;
+        }
+        .audio-evidence {
+          display: block !important;
+        }
+        .score-row {
+          display: grid !important;
+          grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+          gap: 6pt !important;
+          break-inside: avoid;
+          margin: 18pt 0 !important;
+        }
+        .score-row .score {
+          margin: 0 !important;
+          padding: 10pt 6pt !important;
+        }
+        .score-row .score b {
+          font-size: 19pt !important;
+        }
+        .score-row .score span {
+          font-size: 8pt !important;
+          overflow-wrap: anywhere;
+        }
+
+        .audio-evidence > div,
+        .score {
+          margin-bottom: 14pt;
+          min-width: 0 !important;
+        }
+        .table-wrap {
+          overflow: visible !important;
+        }
+        .modal table {
+          width: 100% !important;
+          min-width: 0 !important;
+          table-layout: fixed;
+        }
+        .modal td,
+        .modal th,
+        .answer-box {
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+        .modal h3,
+        .modal h4 {
+          break-after: avoid;
+        }
+        .modal tr {
+          break-inside: avoid;
+        }
+        .modal audio,
+        .modal .record-area {
+          display: none !important;
+        }
+
         body > *:not(.modal) {
           display: none !important;
         }
@@ -1799,7 +1866,7 @@
             resultsData.results
               .map(
                 (r) =>
-                  `<tr><td><b>${esc(r.name)}</b><br><span style="color:var(--muted)">${esc(r.email)}</span></td><td>${esc((r.submitted_at || "").slice(0, 16).replace("T", " "))}</td><td>${esc(r.word_count)}</td><td><b>${esc(r.total_score)}/20</b></td><td><span class="tag green">${esc(r.suggested_level)}</span></td><td>${esc(r.error_count)}</td><td><button class="btn btn-soft" data-report="${esc(r.submission_id)}">Open report</button></td></tr>`,
+                  `<tr><td><b>${esc(r.name)}</b><br><span style="color:var(--muted)">${esc(r.email)}</span></td><td>${esc((r.submitted_at || "").slice(0, 16).replace("T", " "))}</td><td>${esc(r.word_count)}</td><td><b>${esc(r.total_score)}/20</b></td><td><span class="tag green">${esc(r.suggested_level)}</span></td><td>${esc(r.error_count)}</td><td><div class="actions"><button class="btn btn-soft" data-report="${esc(r.submission_id)}">Open report</button><button class="btn btn-line" data-delete-report="${esc(r.submission_id)}">Delete report</button></div></td></tr>`,
               )
               .join("") || '<tr><td colspan="7">No submissions yet.</td></tr>';
           document
@@ -1951,13 +2018,13 @@
       function drawAdminPane(tab) {
         const pane = document.querySelector("#adminPane");
         if (tab === "responses") {
-          pane.innerHTML = `<section class="admin-note"><div class="section-head"><div><div class="kicker">Student responses</div><h2>Placement results</h2></div></div><div class="table-wrap"><table><thead><tr><th>Student</th><th>Submitted</th><th>Words</th><th>Writing</th><th>Speaking evidence</th><th>Level</th><th></th></tr></thead><tbody>${state.adminResults.map((r) => `<tr><td><b>${esc(r.name)}</b><br><span style="color:var(--muted)">${esc(r.email)}</span></td><td>${esc((r.submitted_at || "").slice(0, 16).replace("T", " "))}</td><td>${esc(r.word_count)}</td><td><b>${esc(r.total_score)}/20</b></td><td>${esc(r.speaking_auto_score || "—")}/5</td><td><span class="tag ${r.suggested_level === "Teacher review required" ? "" : "green"}">${esc(r.suggested_level)}</span></td><td><button class="btn btn-soft" data-report="${esc(r.submission_id)}">Open report</button></td></tr>`).join("") || '<tr><td colspan="7">No submissions yet.</td></tr>'}</tbody></table></div></section>`;
+          pane.innerHTML = `<section class="admin-note"><div class="section-head"><div><div class="kicker">Student responses</div><h2>Placement results</h2></div></div><div class="table-wrap"><table><thead><tr><th>Student</th><th>Submitted</th><th>Words</th><th>Writing</th><th>Speaking evidence</th><th>Level</th><th></th></tr></thead><tbody>${state.adminResults.map((r) => `<tr><td><b>${esc(r.name)}</b><br><span style="color:var(--muted)">${esc(r.email)}</span></td><td>${esc((r.submitted_at || "").slice(0, 16).replace("T", " "))}</td><td>${esc(r.word_count)}</td><td><b>${esc(r.total_score)}/20</b></td><td>${esc(r.speaking_auto_score || "—")}/5</td><td><span class="tag ${r.suggested_level === "Teacher review required" ? "" : "green"}">${esc(r.suggested_level)}</span></td><td><div class="actions"><button class="btn btn-soft" data-report="${esc(r.submission_id)}">Open report</button><button class="btn btn-line" data-delete-report="${esc(r.submission_id)}">Delete report</button></div></td></tr>`).join("") || '<tr><td colspan="7">No submissions yet.</td></tr>'}</tbody></table></div></section>`;
           pane
             .querySelectorAll("[data-report]")
             .forEach((b) => (b.onclick = () => openReport(b.dataset.report)));
           return;
         }
-        pane.innerHTML = `<section class="admin-note"><div class="section-head"><div><div class="kicker">Access management</div><h2>Accounts</h2></div><button class="btn btn-primary" id="createAccount">Create account</button></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Attempts</th><th>Password</th><th></th></tr></thead><tbody>${state.adminUsers.map((u) => `<tr><td><b>${esc(u.name)}</b></td><td>${esc(u.email)}</td><td><span class="tag">${esc(u.role)}</span></td><td><span class="tag ${u.status === "active" ? "green" : ""}">${esc(u.status)}</span></td><td>${u.attempts_used}/${u.attempts_allowed}</td><td>${esc(u.password_status)}</td><td><div class="actions"><button class="btn btn-soft" data-edit-user="${u.user_id}">Edit</button><button class="btn btn-line" data-status-user="${u.user_id}">${u.status === "active" ? "Disable" : "Enable"}</button></div></td></tr>`).join("")}</tbody></table></div></section>`;
+        pane.innerHTML = `<section class="admin-note"><div class="section-head"><div><div class="kicker">Access management</div><h2>Accounts</h2></div><button class="btn btn-primary" id="createAccount">Create account</button></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Attempts</th><th>Password</th><th></th></tr></thead><tbody>${state.adminUsers.map((u) => `<tr><td><b>${esc(u.name)}</b></td><td>${esc(u.email)}</td><td><span class="tag">${esc(u.role)}</span></td><td><span class="tag ${u.status === "active" ? "green" : ""}">${esc(u.status)}</span></td><td>${u.attempts_used}/${u.attempts_allowed}</td><td>${esc(u.password_status)}</td><td><div class="actions"><button class="btn btn-soft" data-edit-user="${u.user_id}">Edit</button>${u.user_id !== state.user.user_id ? `<button class="btn btn-line" data-delete-user="${u.user_id}">Delete account</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div></section>`;
         document.querySelector("#createAccount").onclick = () => accountModal();
         pane
           .querySelectorAll("[data-edit-user]")
@@ -2167,13 +2234,13 @@
               rows = state.adminResults.filter(
                 (r) =>
                   (!q || (r.name + " " + r.email).toLowerCase().includes(q)) &&
-                  (!level || (r.teacher_level || r.suggested_level) === level),
+                  (!level || r.suggested_level === level),
               );
             document.querySelector("#filteredResults").innerHTML =
               rows
                 .map(
                   (r) =>
-                    `<tr><td><b>${esc(r.name)}</b><br><span style="color:var(--muted)">${esc(r.email)}</span></td><td>${esc((r.submitted_at || "").slice(0, 16).replace("T", " "))}</td><td>${esc(r.word_count)}</td><td><b>${esc(r.total_score)}/20</b></td><td>${esc(r.speaking_auto_score || "—")}/5</td><td><span class="tag ${(r.teacher_level || r.suggested_level) === "Teacher review required" ? "" : "green"}">${esc(r.teacher_level || r.suggested_level)}</span></td><td><button class="btn btn-soft" data-managed-report="${esc(r.submission_id)}">Open report</button></td></tr>`,
+                    `<tr><td><b>${esc(r.name)}</b><br><span style="color:var(--muted)">${esc(r.email)}</span></td><td>${esc((r.submitted_at || "").slice(0, 16).replace("T", " "))}</td><td>${esc(r.word_count)}</td><td><b>${esc(r.total_score)}/20</b></td><td>${esc(r.speaking_auto_score || "—")}/5</td><td><span class="tag ${r.suggested_level === "Teacher review required" ? "" : "green"}">${esc(r.suggested_level)}</span></td><td><div class="actions"><button class="btn btn-soft" data-managed-report="${esc(r.submission_id)}">Open report</button><button class="btn btn-line" data-delete-report="${esc(r.submission_id)}">Delete report</button></div></td></tr>`,
                 )
                 .join("") ||
               '<tr><td class="empty" colspan="7">No matching submissions.</td></tr>';
@@ -2208,7 +2275,7 @@
             users
               .map(
                 (u) =>
-                  `<tr><td><b>${esc(u.name)}</b></td><td>${esc(u.email)}</td><td><span class="tag">${esc(u.role)}</span></td><td><span class="tag ${u.status === "active" ? "green" : ""}">${esc(u.status)}</span></td><td>${u.attempts_used}/${u.attempts_allowed}</td><td>${esc(u.password_status)}</td><td><div class="actions"><button class="btn btn-soft" data-edit-user="${u.user_id}">Edit</button><button class="btn btn-line" data-status-user="${u.user_id}">${u.status === "active" ? "Disable" : "Enable"}</button></div></td></tr>`,
+                  `<tr><td><b>${esc(u.name)}</b></td><td>${esc(u.email)}</td><td><span class="tag">${esc(u.role)}</span></td><td><span class="tag ${u.status === "active" ? "green" : ""}">${esc(u.status)}</span></td><td>${u.attempts_used}/${u.attempts_allowed}</td><td>${esc(u.password_status)}</td><td><div class="actions"><button class="btn btn-soft" data-edit-user="${u.user_id}">Edit</button>${u.user_id !== state.user.user_id ? `<button class="btn btn-line" data-delete-user="${u.user_id}">Delete account</button>` : ""}</div></td></tr>`,
               )
               .join("") ||
             '<tr><td class="empty" colspan="7">No matching accounts.</td></tr>';
@@ -2266,7 +2333,7 @@
           return;
         }
         win.document.write(
-          `<title>Kaplan placement results</title><style>body{font-family:Arial;padding:30px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #bbb;padding:8px;text-align:left}h1{color:#731f35}</style><h1>Kaplan placement results</h1><p>Printed ${new Date().toLocaleString("en-GB")}</p><table><tr><th>Student</th><th>Email</th><th>Submitted</th><th>Writing</th><th>Speaking evidence</th><th>Placement</th></tr>${rows.map((r) => `<tr><td>${esc(r.name)}</td><td>${esc(r.email)}</td><td>${esc(r.submitted_at)}</td><td>${esc(r.total_score)}/20</td><td>${esc(r.speaking_auto_score || "—")}/5</td><td>${esc(r.teacher_level || r.suggested_level)}</td></tr>`).join("")}</table>`,
+          `<title>Kaplan placement results</title><style>body{font-family:Arial;padding:30px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #bbb;padding:8px;text-align:left}h1{color:#731f35}</style><h1>Kaplan placement results</h1><p>Printed ${new Date().toLocaleString("en-GB")}</p><table><tr><th>Student</th><th>Email</th><th>Submitted</th><th>Writing</th><th>Speaking evidence</th><th>Placement</th></tr>${rows.map((r) => `<tr><td>${esc(r.name)}</td><td>${esc(r.email)}</td><td>${esc(r.submitted_at)}</td><td>${esc(r.total_score)}/20</td><td>${esc(r.speaking_auto_score || "—")}/5</td><td>${esc(r.suggested_level)}</td></tr>`).join("")}</table>`,
         );
         win.document.close();
         win.focus();
@@ -2330,13 +2397,13 @@
         if (!card) return;
         const box = document.createElement("section");
         box.className = "override-box";
-        box.innerHTML = `<h3>Teacher decision</h3><label class="label">Final placement level</label><select id="teacherLevel"><option value="">Not confirmed</option><option>Below A2</option><option>A2</option><option>B1</option><option>B2</option><option>Teacher review required</option></select><label class="label">Teacher notes</label><textarea id="teacherNotes" maxlength="5000" placeholder="Add manual speaking assessment, placement reasoning and recommendations."></textarea><div class="actions"><button class="btn btn-primary" id="saveOverride">Save teacher decision</button><button class="btn btn-line" id="printReport">Print report</button></div>`;
+        box.innerHTML = `<h3>Teacher decision</h3><label class="label">Final placement level</label><select id="teacherLevel"><option value="">Not confirmed</option><option>Below A2</option><option>A2</option><option>B1</option><option>B2</option><option>Teacher review required</option></select><label class="label">Teacher notes</label><textarea id="teacherNotes" maxlength="5000" placeholder="Add manual speaking assessment, placement reasoning and recommendations."></textarea><div class="actions"><button class="btn btn-primary" id="saveOverride">Save teacher decision</button><button class="btn btn-line" id="printReport">Download PDF</button></div>`;
         card.appendChild(box);
         box.querySelector("#teacherLevel").value =
           detail.result.teacher_level || "";
         box.querySelector("#teacherNotes").value =
           detail.result.teacher_notes || "";
-        box.querySelector("#printReport").onclick = () => window.print();
+        box.querySelector("#printReport").onclick = () => printReportPdf(box);
         box.querySelector("#saveOverride").onclick = async () => {
           try {
             await api(
@@ -2357,33 +2424,32 @@
           }
         };
       }
-      async function downloadReportPdf(id) {
-        try {
-          toast("Preparing PDF…");
-          const response = await authenticatedFetch(
-            "/api/v1/admin/results/" + encodeURIComponent(id) + "/pdf",
-            { headers: { Authorization: "Bearer " + state.token } },
-          );
-          if (!response.ok) {
-            let message = "PDF download failed.";
-            try {
-              message = (await response.json()).error?.message || message;
-            } catch {}
-            throw new Error(message);
-          }
-          const blob = await response.blob(),
-            url = URL.createObjectURL(blob),
-            a = document.createElement("a");
-          a.href = url;
-          a.download = "Kaplan-assessment-report.pdf";
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          URL.revokeObjectURL(url);
-          toast("PDF downloaded.");
-        } catch (e) {
-          toast(e.message);
-        }
+      function printReportPdf() {
+        if (document.querySelector("#pdfLayoutDialog")) return;
+        const dialog = document.createElement("dialog");
+        dialog.id = "pdfLayoutDialog";
+        dialog.style.cssText =
+          "border:1px solid #e7dde0;border-radius:20px;padding:28px;max-width:440px;width:calc(100% - 40px);color:var(--ink)";
+        dialog.innerHTML = `<h3 style="margin-top:0">Download PDF</h3><p>Choose the page orientation to continue to the print preview. Select Save as PDF there.</p><div class="actions" style="margin-top:20px"><button class="btn btn-primary" data-layout="portrait">Portrait</button><button class="btn btn-line" data-layout="landscape">Landscape</button><button class="btn btn-line" data-cancel>Cancel</button></div>`;
+        document.body.appendChild(dialog);
+        dialog.addEventListener("close", () => dialog.remove());
+        dialog.querySelector("[data-cancel]").onclick = () => dialog.close();
+        dialog.querySelectorAll("[data-layout]").forEach((button) => {
+          button.onclick = () => {
+            const orientation =
+              button.dataset.layout === "landscape" ? "landscape" : "portrait";
+            let pageStyle = document.querySelector("#reportPageStyle");
+            if (!pageStyle) {
+              pageStyle = document.createElement("style");
+              pageStyle.id = "reportPageStyle";
+              document.head.appendChild(pageStyle);
+            }
+            pageStyle.textContent = `@page { size: A4 ${orientation}; margin: 24mm 18mm 18mm; }`;
+            dialog.close();
+            requestAnimationFrame(() => window.print());
+          };
+        });
+        dialog.showModal();
       }
       async function openManagedReport(id) {
         if (state.openingReport || document.querySelector(".report-modal"))
@@ -2401,15 +2467,13 @@
           if (!card) return;
           const box = document.createElement("section");
           box.className = "override-box";
-          box.innerHTML = `<h3>Teacher decision</h3><label class="label">Final placement level</label><select id="teacherLevel"><option value="">Not confirmed</option><option>Below A2</option><option>A2</option><option>B1</option><option>B2</option><option>Teacher review required</option></select><label class="label">Teacher notes</label><textarea id="teacherNotes" maxlength="5000" placeholder="Add manual speaking assessment, placement reasoning and recommendations."></textarea><div class="actions"><button class="btn btn-primary" id="saveOverride">Save teacher decision</button><button class="btn btn-soft" id="downloadPdf">Download PDF</button><button class="btn btn-line" id="printReport">Print report</button></div>`;
+          box.innerHTML = `<h3>Teacher decision</h3><label class="label">Final placement level</label><select id="teacherLevel"><option value="">Not confirmed</option><option>Below A2</option><option>A2</option><option>B1</option><option>B2</option><option>Teacher review required</option></select><label class="label">Teacher notes</label><textarea id="teacherNotes" maxlength="5000" placeholder="Add manual speaking assessment, placement reasoning and recommendations."></textarea><div class="actions"><button class="btn btn-primary" id="saveOverride">Save teacher decision</button><button class="btn btn-line" id="printReport">Download PDF</button></div>`;
           card.appendChild(box);
           box.querySelector("#teacherLevel").value =
             detail.result.teacher_level || "";
           box.querySelector("#teacherNotes").value =
             detail.result.teacher_notes || "";
-          box.querySelector("#downloadPdf").onclick = () =>
-            downloadReportPdf(id);
-          box.querySelector("#printReport").onclick = () => window.print();
+          box.querySelector("#printReport").onclick = () => printReportPdf(box);
           box.querySelector("#saveOverride").onclick = async () => {
             try {
               await api(
@@ -2483,7 +2547,8 @@
           load.className = "btn btn-soft";
           load.textContent = `Load answer ${index + 1} audio`;
           panel.appendChild(load);
-          driveLink?.insertAdjacentElement("beforebegin", panel);
+          if (driveLink) driveLink.before(panel);
+          else card.appendChild(panel);
           load.onclick = async () => {
             load.disabled = true;
             load.innerHTML = '<i class="spinner"></i> Loading audio…';
@@ -2553,15 +2618,13 @@
           await attachEmbeddedAudio(id, modal);
           const box = document.createElement("section");
           box.className = "override-box";
-          box.innerHTML = `<h3>Teacher decision</h3><label class="label">Final placement level</label><select id="teacherLevel"><option value="">Not confirmed</option><option>Below A2</option><option>A2</option><option>B1</option><option>B2</option><option>Teacher review required</option></select><label class="label">Teacher notes</label><textarea id="teacherNotes" maxlength="5000" placeholder="Add manual speaking assessment, placement reasoning and recommendations."></textarea><div class="actions"><button class="btn btn-primary" id="saveOverride">Save teacher decision</button><button class="btn btn-soft" id="downloadPdf">Download PDF</button><button class="btn btn-line" id="printReport">Print report</button></div>`;
+          box.innerHTML = `<h3>Teacher decision</h3><label class="label">Final placement level</label><select id="teacherLevel"><option value="">Not confirmed</option><option>Below A2</option><option>A2</option><option>B1</option><option>B2</option><option>Teacher review required</option></select><label class="label">Teacher notes</label><textarea id="teacherNotes" maxlength="5000" placeholder="Add manual speaking assessment, placement reasoning and recommendations."></textarea><div class="actions"><button class="btn btn-primary" id="saveOverride">Save teacher decision</button><button class="btn btn-line" id="printReport">Download PDF</button></div>`;
           card.appendChild(box);
           box.querySelector("#teacherLevel").value =
             detail.result.teacher_level || "";
           box.querySelector("#teacherNotes").value =
             detail.result.teacher_notes || "";
-          box.querySelector("#downloadPdf").onclick = () =>
-            downloadReportPdf(id);
-          box.querySelector("#printReport").onclick = () => window.print();
+          box.querySelector("#printReport").onclick = () => printReportPdf(box);
           box.querySelector("#saveOverride").onclick = async () => {
             try {
               await api(
@@ -2631,6 +2694,39 @@
             row.remove();
         });
       }
+      document.addEventListener("click", async (event) => {
+        const button = event.target.closest(
+          "[data-delete-user], [data-delete-report]",
+        );
+        if (!button) return;
+        const account = button.dataset.deleteUser;
+        if (
+          !confirm(
+            account
+              ? "Delete this account and all its reports and recordings? This cannot be undone."
+              : "Delete this report and its recordings? This cannot be undone.",
+          )
+        )
+          return;
+        button.disabled = true;
+        try {
+          await api(
+            "/api/v1/admin/" +
+              (account
+                ? "users/" + encodeURIComponent(account)
+                : "results/" + encodeURIComponent(button.dataset.deleteReport)),
+            { method: "DELETE" },
+          );
+          document
+            .querySelectorAll(".modal")
+            .forEach((modal) => modal.remove());
+          toast(account ? "Account deleted." : "Report deleted.");
+          await adminViewV3();
+        } catch (error) {
+          toast(error.message);
+          button.disabled = false;
+        }
+      });
       async function openManagedReport(id) {
         if (state.openingReport || document.querySelector(".report-modal"))
           return;
@@ -2649,15 +2745,13 @@
           await attachEmbeddedAudio(id, modal);
           const box = document.createElement("section");
           box.className = "override-box";
-          box.innerHTML = `<h3>Teacher decision</h3><label class="label">Final placement level</label><select id="teacherLevel"><option value="">Not confirmed</option><option>Below A2</option><option>A2</option><option>B1</option><option>B2</option><option>Teacher review required</option></select><label class="label">Teacher notes</label><textarea id="teacherNotes" maxlength="5000" placeholder="Add manual speaking assessment, placement reasoning and recommendations."></textarea><div class="actions"><button class="btn btn-primary" id="saveOverride">Save teacher decision</button><button class="btn btn-soft" id="downloadPdf">Download PDF</button><button class="btn btn-line" id="printReport">Print report</button></div>`;
+          box.innerHTML = `<h3>Teacher decision</h3><label class="label">Final placement level</label><select id="teacherLevel"><option value="">Not confirmed</option><option>Below A2</option><option>A2</option><option>B1</option><option>B2</option><option>Teacher review required</option></select><label class="label">Teacher notes</label><textarea id="teacherNotes" maxlength="5000" placeholder="Add manual speaking assessment, placement reasoning and recommendations."></textarea><div class="actions"><button class="btn btn-primary" id="saveOverride">Save teacher decision</button><button class="btn btn-line" id="printReport">Download PDF</button></div>`;
           card.appendChild(box);
           box.querySelector("#teacherLevel").value =
             detail.result.teacher_level || "";
           box.querySelector("#teacherNotes").value =
             detail.result.teacher_notes || "";
-          box.querySelector("#downloadPdf").onclick = () =>
-            downloadReportPdf(id);
-          box.querySelector("#printReport").onclick = () => window.print();
+          box.querySelector("#printReport").onclick = () => printReportPdf(box);
           box.querySelector("#saveOverride").onclick = async () => {
             try {
               await api(

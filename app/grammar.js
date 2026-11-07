@@ -53,6 +53,68 @@ export function sentenceIssues(text, section = "writing") {
     for (const match of text.matchAll(new RegExp(pattern, "gid")))
       callback(match);
   };
+  const patterns = [
+    [
+      "Auxiliary verb",
+      /\b(will|can|could|should|would|must)\s+(started|learned|visited|played|worked)\b/gi,
+      (m) => `${m[1]} ${m[2].slice(0, -2)}`,
+      "A modal verb takes the base form.",
+      "modal-regular-base",
+    ],
+    [
+      "Articles",
+      /\bis\s+memorable\s+day\b/gi,
+      () => "is a memorable day",
+      "A singular countable noun needs an article.",
+      "memorable-article",
+    ],
+    [
+      "Verb pattern",
+      /\b(teachers?\s+also|she\s+also|he\s+also)\s+advice\b/gi,
+      (m) => `${m[1]} ${/^teachers\b/i.test(m[1]) ? "advise" : "advises"}`,
+      "Advice is a noun; use the verb advise with subject agreement.",
+      "advice-verb",
+    ],
+    [
+      "Sentence structure",
+      /\bI\s+will\s+do\s+to\s+get\b/gi,
+      () => "I will develop",
+      "Use a direct verb phrase to express what you will do.",
+      "do-to-get",
+    ],
+    [
+      "Subject-verb agreement",
+      /\bmy\s+favourite\s+hobbies\s+(?:is\s+)?garden\b/gi,
+      () => "my favourite hobby is gardening",
+      "Use a singular hobby with is and a gerund for the activity.",
+      "hobby-predicate",
+    ],
+    [
+      "Sentence structure",
+      /\blife\s+is\s+full\s+of\s+many\s+stages\s+sometime\s+are\b/gi,
+      () => "life has many stages; sometimes they are",
+      "The next clause needs a subject and a sentence boundary.",
+      "stages-subject",
+    ],
+    [
+      "Verb pattern",
+      /\b(achieve|get)\s+aim\b/gi,
+      (m) => `${m[1] === "get" ? "achieve" : m[1]} my aim`,
+      "Use a determiner before aim and the verb achieve.",
+      "achieve-aim",
+    ],
+  ];
+  for (const [category, pattern, correction, explanation, rule] of patterns) {
+    for (const match of text.matchAll(pattern))
+      add(
+        category,
+        match[0],
+        match.index,
+        correction(match),
+        explanation,
+        rule,
+      );
+  }
   const past =
     /\b(yesterday|last\s+(?:week|weekend|night|month|year)|ago)\b/i.test(text);
   const be = (subject) =>

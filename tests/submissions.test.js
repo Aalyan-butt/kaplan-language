@@ -113,3 +113,70 @@ test("MP3 size and format checks preserve the original 6 MB limit", () => {
   audio.write("ID3");
   assert.equal(validMp3(audio, "audio/mpeg", "Answer").length, audio.length);
 });
+
+test("results rows and print list render the suggested placement and filter correctly", async () => {
+  const html = await readFile("index.html", "utf8");
+  const start = html.indexOf("      function drawAdminPaneV3(tab)");
+  const end = html.indexOf("      async function exportResults", start);
+  assert.ok(start >= 0 && end > start);
+  const nodes = new Map();
+  const node = (selector) => {
+    if (!nodes.has(selector)) nodes.set(selector, { innerHTML: "", value: "" });
+    return nodes.get(selector);
+  };
+  const rows = [
+    {
+      name: "Student One",
+      email: "one@example.com",
+      submission_id: "one",
+      total_score: 13,
+      suggested_level: "A2",
+      teacher_level: "B1",
+    },
+    {
+      name: "Student Two",
+      email: "two@example.com",
+      submission_id: "two",
+      total_score: 16,
+      suggested_level: "B1",
+    },
+  ];
+  const context = {
+    document: { querySelector: node, querySelectorAll: () => [] },
+    state: { adminResults: rows },
+    esc: (value) => String(value ?? ""),
+    exportResults() {},
+    printResultList() {},
+  };
+  new Script(
+    html.slice(start, end) + '\ndrawAdminPaneV3("responses");',
+  ).runInNewContext(context);
+  assert.match(node("#filteredResults").innerHTML, /Student One/);
+  assert.match(node("#filteredResults").innerHTML, />A2<\/span>/);
+  assert.match(node("#filteredResults").innerHTML, /Open report/);
+  node("#levelFilter").value = "A2";
+  node("#levelFilter").onchange();
+  assert.match(node("#filteredResults").innerHTML, /Student One/);
+  assert.doesNotMatch(node("#filteredResults").innerHTML, /Student Two/);
+  let printed = "";
+  const printStart = html.indexOf("      function printResultList(rows)");
+  const printEnd = html.indexOf("      function bulkAccountModal", printStart);
+  new Script(
+    html.slice(printStart, printEnd) + "\nprintResultList(state.adminResults);",
+  ).runInNewContext({
+    ...context,
+    window: {
+      open: () => ({
+        document: {
+          write: (value) => {
+            printed = value;
+          },
+          close() {},
+        },
+        focus() {},
+        print() {},
+      }),
+    },
+  });
+  assert.match(printed, /<td>A2<\/td>/);
+});
