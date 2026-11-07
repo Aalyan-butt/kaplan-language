@@ -182,8 +182,8 @@ export function createApp({ store, settings = getSettings(), workspace } = {}) {
       ).length <= 1
     )
       throw new HttpError(409, "Keep at least one active administrator.");
-    for (const row of await store.all("Results"))
-      if (row.user_id === account.user_id) await deleteReport(row);
+    // Reports and recordings are retained independently of login accounts.
+    // Only the explicit report-deletion action may remove those artifacts.
     await store.remove("Sessions", "user_id", account.user_id);
     await store.remove("Users", "user_id", account.user_id);
     await service.audit("ACCOUNT_DELETED", req.user, account);

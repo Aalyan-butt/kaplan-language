@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { HttpError, iso } from "./security.js";
 import { analyseSubmission, round } from "./checker.js";
 import { submissionSchema } from "./models.js";
-import { assessSpeaking } from "./assessment.js";
+import { assessSpeaking, assessPlacement } from "./assessment.js";
 export const MAX_AUDIO_BYTES = 6 * 1024 * 1024;
 export function validMp3(content, type, label) {
   if (!["audio/mpeg", "audio/mp3", "application/octet-stream"].includes(type))
@@ -175,6 +175,11 @@ export async function createSubmission(req, store, workspace, service) {
     speaking,
     transcripts,
   );
+  w.placement_assessment = assessPlacement(
+    w.total,
+    w.speaking_assessment.overall_score,
+  );
+  w.level = w.placement_assessment.level;
   w.speaking_language = w.speaking_language.map((language, index) => ({
     ...language,
     assessment: w.speaking_assessment.answers[index],

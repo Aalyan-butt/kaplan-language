@@ -57,6 +57,7 @@ export function analyse(
   section = "writing",
   targetMin = 120,
   targetMax = 180,
+  requirePast = false,
 ) {
   const text = (raw || "").replace(/\r\n?/g, "\n"),
     words = matches(text, wordPattern, "g"),
@@ -364,6 +365,90 @@ export function analyse(
     )
       issues.push(issue);
   }
+  let tenseRequirement;
+  if (requirePast) {
+    const pastEvidence =
+      /\b(?:was|were|had|did|went|felt|saw|ate|took|came|made|[a-z]+ed)\b/i.test(
+        text,
+      ) || lower.some((word) => PAST[word] && PAST[word] !== word);
+    const forms = new Set([
+      ...FINITE_VERBS,
+      ...Object.keys(IRREGULAR),
+      "am",
+      "is",
+      "are",
+      "has",
+      "have",
+      "do",
+      "does",
+      "goes",
+      "says",
+      "will",
+      "shall",
+      "don't",
+      "doesn't",
+      "isn't",
+      "aren't",
+      "haven't",
+      "hasn't",
+      "won't",
+      "i'm",
+      "he's",
+      "she's",
+      "it's",
+      "we're",
+      "they're",
+      "you're",
+      "i'll",
+      "we'll",
+      "they'll",
+      "he'll",
+      "she'll",
+      "you'll",
+      "it'll",
+    ]);
+    for (let i = 0; i < words.length; i++) {
+      const word = lower[i];
+      if (!forms.has(word)) continue;
+      const before = lower.slice(Math.max(0, i - 3), i);
+      // Infinitives and verbs governed by past auxiliaries are valid past narration.
+      if (
+        /^(?:to|did|didn't|could|would|should|might|must)$/.test(
+          before.at(-1) || "",
+        ) ||
+        (/^(?:did|didn't|could|would|should|might|must)$/.test(
+          before.at(-2) || "",
+        ) &&
+          before.at(-1) === "not")
+      )
+        continue;
+      if (/^(?:read|cut|put|let|hit|hurt|cost|set|shut|beat)$/.test(word))
+        continue;
+      // A lexical verb needs a subject or a coordinated clause; avoid nouns such as "a visit".
+      const auxiliary =
+        /^(?:am|is|are|has|have|do|does|will|shall)$/.test(word) ||
+        word.includes("'");
+      if (
+        !auxiliary &&
+        !/^(?:i|we|he|she|it|they|you|and|then|also)$/.test(before.at(-1) || "")
+      )
+        continue;
+      add(
+        "Tense",
+        words[i][0],
+        words[i].index,
+        "",
+        "This question requires a past experience. Use past tense; present and future tense are not accepted.",
+        "required-past-tense",
+      );
+    }
+    tenseRequirement = {
+      required: "past",
+      accepted:
+        pastEvidence &&
+        !issues.some((issue) => issue.rule_id === "required-past-tense"),
+    };
+  }
   issues.sort(
     (a, b) =>
       a.start - b.start ||
@@ -377,10 +462,20 @@ export function analyse(
     seen.add(k);
     return true;
   });
-  // Speech-recognition transcripts do not preserve reliable sentence casing.
-  // Do not penalise the student for a lower-case first letter added by the browser.
+  // Transcription supplies punctuation, casing and sentence boundaries.
+  // Remove these before counting errors or calculating any speaking scores.
   if (section.startsWith("speaking_"))
-    issues = issues.filter((issue) => issue.rule_id !== "sentence-capital");
+    issues = issues.filter(
+      (issue) =>
+        ![
+          "Punctuation",
+          "Capitalisation",
+          "Spacing",
+          "Comma splice",
+          "Run-on sentence",
+          "Sentence boundaries",
+        ].includes(issue.category),
+    );
   const count = words.length,
     sentenceCount = Math.max(
       1,
@@ -421,7 +516,7 @@ export function analyse(
             /\b(because|so|enjoy|enjoyed|like|love|prefer|important|interesting|happy)\b/i.test(
               text,
             ),
-          sentences: sentenceCount >= 2,
+          sentences: count >= 20,
           content: count >= 10,
         }
       : {
@@ -451,23 +546,26 @@ export function analyse(
             ? 2
             : 1;
   const scores = {
-      grammar: score(
-        rate([
-          "Irregular verbs",
-          "Tense",
-          "Verb form after did",
-          "Subject-verb agreement",
-          "Articles",
-          "Missing verb",
-          "Comma splice",
-          "Run-on sentence",
-          "Sentence structure",
-          "Sentence fragment",
-          "Missing subject",
-          "Auxiliary verb",
-          "Verb pattern",
-        ]),
-      ),
+      grammar:
+        tenseRequirement?.accepted === false
+          ? 1
+          : score(
+              rate([
+                "Irregular verbs",
+                "Tense",
+                "Verb form after did",
+                "Subject-verb agreement",
+                "Articles",
+                "Missing verb",
+                "Comma splice",
+                "Run-on sentence",
+                "Sentence structure",
+                "Sentence fragment",
+                "Missing subject",
+                "Auxiliary verb",
+                "Verb pattern",
+              ]),
+            ),
       spelling_punctuation: score(
         rate([
           "Spelling",
@@ -479,16 +577,23 @@ export function analyse(
         ]),
       ),
       vocabulary,
-      task_length: task,
+      task_length: tenseRequirement?.accepted === false ? 1 : task,
     },
     total = Object.values(scores).reduce((a, b) => a + b, 0),
     topic =
-      detailCount >= 4 && count >= 60
-        ? "Likely on topic"
-        : "Teacher review required",
+      tenseRequirement?.accepted === false
+        ? "Past tense required"
+        : detailCount >= 4 && count >= 60
+          ? "Likely on topic"
+          : "Teacher review required",
     calculated =
       total >= 18 ? "B2" : total >= 14 ? "B1" : total >= 10 ? "A2" : "Below A2";
   const feedback = [];
+  if (tenseRequirement?.accepted === false) {
+    feedback.push(
+      "Past tense required: this answer is not accepted for the task. Describe what happened using past tense throughout; present and future tense do not meet this question's requirement.",
+    );
+  }
   if (count < targetMin)
     feedback.push(
       `Write at least ${targetMin} words; this answer has ${count}.`,
@@ -534,8 +639,8 @@ export function analyse(
     if (lessons.length === 3) break;
   }
   return {
-    checker_version: "rules-1.2",
-    formula_version: "kaplan-1.1",
+    checker_version: requirePast ? "rules-1.3-past" : "rules-1.2",
+    formula_version: requirePast ? "kaplan-1.2-past" : "kaplan-1.1",
     metrics: {
       word_count: count,
       sentence_count: sentenceCount,
@@ -557,8 +662,9 @@ export function analyse(
     issues,
     category_counts: categories,
     scores,
+    ...(tenseRequirement ? { tense_requirement: tenseRequirement } : {}),
     total,
-    level: topic === "Likely on topic" ? calculated : "Teacher review required",
+    level: calculated,
     errors_per_100_words: round((issues.length * 100) / Math.max(1, count), 1),
     topic_flag: topic,
     task_details: details,
@@ -571,8 +677,8 @@ export function analyse(
   };
 }
 export const analyseSubmission = (writing, transcripts) => ({
-  writing: analyse(writing),
+  writing: analyse(writing, "writing", 120, 180, true),
   speaking: transcripts.map((t, i) =>
-    t.trim() ? analyse(t, `speaking_${i + 1}`, 20, 250) : null,
+    t.trim() ? analyse(t, `speaking_${i + 1}`, 20, 250, i !== 1) : null,
   ),
 });

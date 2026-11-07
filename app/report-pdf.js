@@ -1,6 +1,6 @@
 import PDFDocument from "pdfkit";
 import { analyseSubmission } from "./checker.js";
-import { assessSpeaking } from "./assessment.js";
+import { assessSpeaking, assessPlacement } from "./assessment.js";
 
 // Use flowing text rather than browser grids or wide tables. PDFKit continues
 // paragraphs onto the next page inside the same margins, including long words.
@@ -15,6 +15,10 @@ export async function createReportPdf(row) {
   } catch {}
   const recordings = saved.speaking_recording || { answers: [] };
   const speaking = assessSpeaking(fresh.speaking, recordings, transcripts);
+  const placement = assessPlacement(
+    fresh.writing.total,
+    speaking.overall_score,
+  );
   const doc = new PDFDocument({
     size: "A4",
     margins: { top: 54, bottom: 60, left: 54, right: 54 },
@@ -97,7 +101,9 @@ export async function createReportPdf(row) {
   heading("Writing assessment");
   marks([
     ["Total", `${fresh.writing.total}/20`],
-    ["Suggested placement", fresh.writing.level],
+    ["Speaking", `${speaking.overall_score}/5`],
+    ["Combined score", `${placement.total}/20`],
+    ["Placement", row.teacher_level || placement.level],
     ...Object.entries(fresh.writing.scores).map(([key, value]) => [
       {
         grammar: "Grammar",
@@ -108,6 +114,7 @@ export async function createReportPdf(row) {
       `${value}/5`,
     ]),
   ]);
+  paragraph(placement.formula);
   heading("Task-completion feedback", 12);
   for (const feedback of fresh.writing.task_feedback) paragraph(feedback);
   heading("Original writing answer", 12);
@@ -158,7 +165,7 @@ export async function createReportPdf(row) {
     issues(fresh.speaking[index]?.issues);
   }
   heading("Teacher decision");
-  paragraph(`Final placement: ${row.teacher_level || "Not yet confirmed"}`, {
+  paragraph(`Placement: ${row.teacher_level || placement.level}`, {
     bold: true,
   });
   paragraph(

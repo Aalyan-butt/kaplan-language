@@ -1,5 +1,16 @@
 import { round } from "./checker.js";
 
+export function assessPlacement(writingTotal, speakingScore) {
+  const total = round((writingTotal + speakingScore * 4) / 2, 1);
+  return {
+    total,
+    level:
+      total >= 18 ? "B2" : total >= 14 ? "B1" : total >= 10 ? "A2" : "Below A2",
+    formula:
+      "Placement uses 50% writing and 50% speaking. Speaking /5 is converted to /20, then averaged with writing /20.",
+  };
+}
+
 const prompts = [
   [
     "weekend",
@@ -194,6 +205,12 @@ export function assessSpeaking(
     if (relevance === 1) final = Math.min(final, 2.5);
     if (language.metrics.word_count < 10) final = Math.min(final, 2);
     const feedback = [];
+    if (language.tense_requirement?.accepted === false) {
+      final = 1;
+      feedback.push(
+        "Past tense required: this answer is not accepted. Describe what you did using past tense; present and future answers do not meet the task.",
+      );
+    }
     if (grammar < 4) feedback.push("Grammar errors reduce the score.");
     if (vocabulary < 4)
       feedback.push("Vocabulary is repetitive, vague or too limited.");
@@ -206,7 +223,10 @@ export function assessSpeaking(
       );
     return {
       answer,
-      status: "checked",
+      status:
+        language.tense_requirement?.accepted === false
+          ? "past_tense_required"
+          : "checked",
       grammar_score: grammar,
       vocabulary_score: vocabulary,
       sentence_score: sentence,

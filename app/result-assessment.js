@@ -1,9 +1,17 @@
 import { analyseSubmission } from "./checker.js";
-import { assessSpeaking } from "./assessment.js";
+import { assessSpeaking, assessPlacement } from "./assessment.js";
+
+// Reuse CPU-heavy grammar analysis across list, report and export requests.
+// The full row key invalidates automatically when answers or teacher data change.
+const assessments = new Map();
+const MAX_ASSESSMENTS = 200;
 
 // Derive every displayed/exported score from the same current rules. Stored
 // summaries from earlier checker versions must not override the current report.
 export function assessResult(row) {
+  const cacheKey = JSON.stringify(row);
+  if (assessments.has(cacheKey))
+    return structuredClone(assessments.get(cacheKey));
   const transcripts = [1, 2, 3].map(
     (n) => row[`speaking_transcript_${n}`] || "",
   );
@@ -20,9 +28,15 @@ export function assessResult(row) {
   }
   recording ||= { answers: [] };
   const assessment = assessSpeaking(fresh.speaking, recording, transcripts);
+  const placement = assessPlacement(
+    fresh.writing.total,
+    assessment.overall_score,
+  );
   const report = {
     ...saved,
     ...fresh.writing,
+    level: placement.level,
+    placement_assessment: placement,
     speaking_recording: recording,
     speaking_assessment: assessment,
     speaking_language: fresh.speaking.map((language, index) => ({
@@ -32,7 +46,7 @@ export function assessResult(row) {
     })),
   };
   const w = fresh.writing;
-  return {
+  const result = {
     report,
     row: {
       ...row,
@@ -45,7 +59,8 @@ export function assessResult(row) {
       vocabulary_score: w.scores.vocabulary,
       task_length_score: w.scores.task_length,
       total_score: w.total,
-      suggested_level: w.level,
+      suggested_level: placement.level,
+      placement_score: placement.total,
       formula_version: w.formula_version,
       error_count: w.issues.length,
       errors_per_100_words: w.errors_per_100_words,
@@ -53,4 +68,8 @@ export function assessResult(row) {
       speaking_auto_score: assessment.overall_score,
     },
   };
+  if (assessments.size >= MAX_ASSESSMENTS)
+    assessments.delete(assessments.keys().next().value);
+  assessments.set(cacheKey, result);
+  return structuredClone(result);
 }

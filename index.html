@@ -719,7 +719,7 @@
         position: fixed;
         inset: 0;
         background: rgba(24, 13, 17, 0.55);
-        backdrop-filter: blur(8px);
+        backdrop-filter: none;
         display: grid;
         place-items: center;
         padding: 20px;
@@ -1311,6 +1311,8 @@
         sessionStorage.removeItem("kaplan_csrf");
         state.token = state.csrf = "";
         state.user = null;
+        state.adminUsers = state.adminResults = undefined;
+        state.adminTab = "responses";
       }
       function returnToLogin() {
         if (state.redirecting) return;
@@ -1414,7 +1416,7 @@
         state.audio = [null, null, null];
         app.innerHTML =
           nav() +
-          `<main class="main"><section class="hero"><div><div class="kicker">Kaplan English placement</div><h1 class="page-title">Your assessment</h1><p>Take your time and answer naturally. Your writing is checked automatically as a first pass, then reviewed by a teacher.</p></div><span class="status-pill">1 attempt available</span></section><div class="progress-card"><span class="progress-label" id="progressText">Getting started</span><div class="track"><i id="progressBar"></i></div><span class="time-chip" id="elapsed">00:00</span></div><div class="layout"><form class="content" id="testForm"><section class="card"><div class="card-head"><div class="number">01</div><div><h2>Confirm your details</h2><p class="card-sub">Please make sure this is your account before beginning.</p></div></div><div class="details"><div class="detail"><span>Student name</span><b>${esc(state.user.name)}</b></div><div class="detail"><span>Email address</span><b>${esc(state.user.email)}</b></div><div class="detail"><span>Assessment date</span><b>${new Intl.DateTimeFormat("en-GB", { dateStyle: "long" }).format(new Date())}</b></div><div class="detail"><span>Language standard</span><b>British English</b></div></div></section><section class="card"><div class="card-head"><div class="number">02</div><div><h2>Writing task</h2><p class="card-sub">Write in your own words. Aim for 120–180 words.</p></div></div><div class="prompt"><small>Your question</small><strong>Describe a memorable day in your life.</strong><p>Explain what happened, where you were, who was with you and why it was important. Try to describe events in the past.</p></div><label class="label" for="writing">Your answer</label><textarea id="writing" class="writing" maxlength="5000" required placeholder="Begin writing here…"></textarea><div class="counter"><span id="wordMessage">Aim for 120–180 words</span><span><b id="wordCount">0</b> words</span></div></section><section class="card"><div class="card-head"><div class="number">03</div><div><h2>Speaking tasks</h2><p class="card-sub">Record every answer, then review its transcript for grammar checking. You can listen and record again before submitting.</p></div></div><div class="speaking-list">${speakingCard(0, "What did you do last weekend?")}${speakingCard(1, "Tell me about a time when you felt proud of yourself.")}${speakingCard(2, "Describe a place you visited and what you did there.")}</div><div class="consent"><input id="confirmWork" type="checkbox" required><label for="confirmWork">I confirm that these are my own answers and that I have listened to all three recordings.</label></div><div class="submit-row"><p>After submission, your answers cannot be changed unless an administrator allows another attempt.</p><button class="btn btn-primary" id="submitTest" type="submit" disabled>Submit assessment ${icon("check")}</button></div><div class="form-error" id="submitError"></div></section></form><aside class="side"><section class="side-card"><h3>Before you submit</h3><ul class="checklist"><li><i class="check" id="c-writing">✓</i><span>Writing contains at least 20 words</span></li><li><i class="check" id="c-audio">✓</i><span>All three recordings and transcripts are ready</span></li><li><i class="check" id="c-confirm">✓</i><span>Declaration is confirmed</span></li></ul></section><section class="side-card help"><h3>A calm space helps</h3><p>Use headphones if possible, speak clearly and keep the microphone close. Each answer can be up to 90 seconds.</p><button class="btn" type="button" id="micCheck">Check microphone</button></section></aside></div></main>`;
+          `<main class="main"><section class="hero"><div><div class="kicker">Kaplan English placement</div><h1 class="page-title">Your assessment</h1><p>Take your time and answer naturally. Your writing is checked automatically as a first pass, then reviewed by a teacher.</p></div><span class="status-pill">1 attempt available</span></section><div class="progress-card"><span class="progress-label" id="progressText">Getting started</span><div class="track"><i id="progressBar"></i></div><span class="time-chip" id="elapsed">00:00</span></div><div class="layout"><form class="content" id="testForm"><section class="card"><div class="card-head"><div class="number">01</div><div><h2>Confirm your details</h2><p class="card-sub">Please make sure this is your account before beginning.</p></div></div><div class="details"><div class="detail"><span>Student name</span><b>${esc(state.user.name)}</b></div><div class="detail"><span>Email address</span><b>${esc(state.user.email)}</b></div><div class="detail"><span>Assessment date</span><b>${new Intl.DateTimeFormat("en-GB", { dateStyle: "long" }).format(new Date())}</b></div><div class="detail"><span>Language standard</span><b>British English</b></div></div></section><section class="card"><div class="card-head"><div class="number">02</div><div><h2>Writing task</h2><p class="card-sub">Write in your own words. Aim for 120–180 words.</p></div></div><div class="prompt"><small>Your question</small><strong>Describe a memorable day in your life.</strong><p>Explain what happened, where you were, who was with you and why it was important. Use past tense throughout. Present and future tense answers do not meet this task.</p></div><label class="label" for="writing">Your answer</label><textarea id="writing" class="writing" maxlength="5000" required placeholder="Begin writing here…"></textarea><div class="counter"><span id="wordMessage">Aim for 120–180 words</span><span><b id="wordCount">0</b> words</span></div></section><section class="card"><div class="card-head"><div class="number">03</div><div><h2>Speaking tasks</h2><p class="card-sub">Record every answer, then review its transcript for grammar checking. You can listen and record again before submitting.</p></div></div><div class="speaking-list">${speakingCard(0, "What did you do last weekend?")}${speakingCard(1, "Tell me about a time when you felt proud of yourself.")}${speakingCard(2, "Describe a place you visited and what you did there.")}</div><div class="consent"><input id="confirmWork" type="checkbox" required><label for="confirmWork">I confirm that these are my own answers and that I have listened to all three recordings.</label></div><div class="submit-row"><p>After submission, your answers cannot be changed unless an administrator allows another attempt.</p><button class="btn btn-primary" id="submitTest" type="submit" disabled>Submit assessment ${icon("check")}</button></div><div class="form-error" id="submitError"></div></section></form><aside class="side"><section class="side-card"><h3>Before you submit</h3><ul class="checklist"><li><i class="check" id="c-writing">✓</i><span>Writing contains at least 20 words</span></li><li><i class="check" id="c-audio">✓</i><span>All three recordings and transcripts are ready</span></li><li><i class="check" id="c-confirm">✓</i><span>Declaration is confirmed</span></li></ul></section><section class="side-card help"><h3>A calm space helps</h3><p>Use headphones if possible, speak clearly and keep the microphone close. Each answer can be up to 90 seconds. For questions about last weekend or a place you visited, answer in past tense.</p><button class="btn" type="button" id="micCheck">Check microphone</button></section></aside></div></main>`;
         const writingCard = document.querySelector("#writing").closest(".card");
         writingCard.querySelector(".prompt strong").textContent =
           CONFIG.writing.question || "Describe a memorable day in your life.";
@@ -1841,7 +1843,7 @@
       async function adminView() {
         app.innerHTML =
           nav() +
-          `<main class="main"><section class="hero"><div><div class="kicker">Administration</div><h1 class="page-title">Assessment overview</h1><p>All accounts and every submitted response are visible only to authorised administrators.</p></div><span class="status-pill">Secure administrator session</span></section><div class="admin-grid"><div class="stat"><b id="allUsers">—</b><span>Total accounts</span></div><div class="stat"><b id="students">—</b><span>Students</span></div><div class="stat"><b id="submissions">—</b><span>Submissions</span></div></div><section class="admin-note"><div class="kicker">Student responses</div><h2>Placement results</h2><div class="table-wrap"><table><thead><tr><th>Student</th><th>Submitted</th><th>Words</th><th>Score</th><th>Level</th><th>Issues</th><th></th></tr></thead><tbody id="resultRows"><tr><td colspan="7">Loading responses…</td></tr></tbody></table></div></section><section class="admin-note"><div class="kicker">Access management</div><h2>All accounts</h2><div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Attempts</th><th>Password</th><th>Last login</th></tr></thead><tbody id="accountRows"><tr><td colspan="7">Loading accounts…</td></tr></tbody></table></div></section></main>`;
+          `<main class="main"><section class="hero"><div><div class="kicker">Administration</div><h1 class="page-title">Assessment overview</h1><p>All accounts and every submitted response are visible only to authorised administrators.</p></div><span class="status-pill">Secure administrator session</span></section><div class="admin-grid"><div class="stat"><b id="allUsers">—</b><span>Total accounts</span></div><div class="stat"><b id="students">—</b><span>Students</span></div><div class="stat"><b id="submissions">—</b><span>Submissions</span></div></div><section class="admin-note"><div class="kicker">Student responses</div><h2>Placement results</h2><div class="table-wrap"><table><thead><tr><th>Student</th><th>Submitted</th><th>Words</th><th>Score</th><th>Level</th><th>Issues</th><th></th></tr></thead><tbody id="resultRows"><tr><td colspan="7">Loading responses…</td></tr></tbody></table></div></section><section class="admin-note"><div class="kicker">Access management</div><h2>All accounts</h2><div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Attempts</th><th>Password</th><th>Last login</th></tr></thead><tbody id="accountRows"><tr><td colspan="7">Loading accounts…</td></tr></tbody></table></div></section></main>`;
         bindLogout();
         try {
           const h = { "X-CSRF-Token": state.csrf },
@@ -1859,14 +1861,14 @@
             usersData.users
               .map(
                 (u) =>
-                  `<tr><td><b>${esc(u.name)}</b></td><td>${esc(u.email)}</td><td><span class="tag">${esc(u.role)}</span></td><td><span class="tag ${u.status === "active" ? "green" : ""}">${esc(u.status)}</span></td><td>${u.attempts_used}/${u.attempts_allowed}</td><td>${esc(u.password_status)}</td><td>${u.last_login_at ? esc(u.last_login_at.slice(0, 10)) : "Never"}</td></tr>`,
+                  `<tr><td><b>${esc(u.name)}</b></td><td>${esc(u.email)}</td><td><span class="tag">${esc(u.role)}</span></td><td>${u.attempts_used}/${u.attempts_allowed}</td><td>${esc(u.password_status)}</td><td>${u.last_login_at ? esc(u.last_login_at.slice(0, 10)) : "Never"}</td></tr>`,
               )
               .join("") || '<tr><td colspan="7">No accounts found.</td></tr>';
           document.querySelector("#resultRows").innerHTML =
             resultsData.results
               .map(
                 (r) =>
-                  `<tr><td><b>${esc(r.name)}</b><br><span style="color:var(--muted)">${esc(r.email)}</span></td><td>${esc((r.submitted_at || "").slice(0, 16).replace("T", " "))}</td><td>${esc(r.word_count)}</td><td><b>${esc(r.total_score)}/20</b></td><td><span class="tag green">${esc(r.suggested_level)}</span></td><td>${esc(r.error_count)}</td><td><div class="actions"><button class="btn btn-soft" data-report="${esc(r.submission_id)}">Open report</button><button class="btn btn-line" data-delete-report="${esc(r.submission_id)}">Delete report</button></div></td></tr>`,
+                  `<tr><td><b>${esc(r.name)}</b><br><span style="color:var(--muted)">${esc(r.email)}</span></td><td>${esc((r.submitted_at || "").slice(0, 16).replace("T", " "))}</td><td>${esc(r.word_count)}</td><td><b>${esc(r.total_score)}/20</b></td><td><span class="tag green">${esc(r.teacher_level || currentSuggestedPlacement({}, r).level)}</span></td><td>${esc(r.error_count)}</td><td><div class="actions"><button class="btn btn-soft" data-report="${esc(r.submission_id)}">Open report</button><button class="btn btn-line" data-delete-report="${esc(r.submission_id)}">Delete report</button></div></td></tr>`,
               )
               .join("") || '<tr><td colspan="7">No submissions yet.</td></tr>';
           document
@@ -1959,6 +1961,18 @@
             .join("")
         );
       }
+      function reportMistakes(w, savedErrors = []) {
+        const reports = w.speaking_language || [];
+        const writing = w.issues ? w.issues.map((issue) => ({ answer_section: "writing", category: issue.category, original_text: issue.original, suggested_correction: issue.correction, explanation: issue.explanation })) : savedErrors.filter((e) => !e.answer_section?.startsWith("speaking"));
+        const speaking = reports.flatMap((answer, index) => (answer.issues || []).filter((issue) => !["Punctuation", "Capitalisation", "Spacing", "Comma splice", "Run-on sentence", "Sentence boundaries"].includes(issue.category)).map((issue) => ({ answer_section: `Speaking answer ${answer.answer || index + 1}`, category: issue.category, original_text: issue.original, suggested_correction: issue.correction, explanation: issue.explanation })));
+        return [...writing, ...speaking];
+      }
+      function currentSuggestedPlacement(w, r) {
+        const writing = Number(w.total ?? r.total_score ?? 0);
+        const speaking = Number(w.speaking_assessment?.overall_score ?? r.speaking_auto_score ?? 1);
+        const total = Math.round(((writing + speaking * 4) / 2) * 10) / 10;
+        return { total, level: total >= 18 ? "B2" : total >= 14 ? "B1" : total >= 10 ? "A2" : "Below A2" };
+      }
       async function openReport(id, preloaded) {
         try {
           const x =
@@ -1972,7 +1986,7 @@
             scores = w.scores || {};
           const modal = document.createElement("div");
           modal.className = "modal";
-          modal.innerHTML = `<section class="modal-card report-modal"><button class="btn btn-line" style="float:right" id="closeReport">Close</button><div class="kicker">Automated first-pass report</div><h2>${esc(r.name)}</h2><p class="lead">${esc(r.email)} · ${esc((r.submitted_at || "").replace("T", " ").slice(0, 19))}</p><div class="score-row"><div class="score"><b>${esc(w.total || r.total_score)}/20</b><span>Total</span></div><div class="score"><b>${esc(w.level || r.suggested_level)}</b><span>Suggested level</span></div><div class="score"><b>${esc(scores.grammar || r.grammar_score)}/5</b><span>Grammar</span></div><div class="score"><b>${esc(scores.spelling_punctuation || r.spelling_punctuation_score)}/5</b><span>Spelling & punctuation</span></div><div class="score"><b>${esc(scores.vocabulary || r.vocabulary_score)}/5</b><span>Vocabulary</span></div></div><h3>Original writing answer</h3><div class="answer-box">${esc(r.writing_answer)}</div><h3>Speaking transcripts</h3>${[1, 2, 3].map((n) => `<p><b>Answer ${n}</b><br>${esc(r["speaking_transcript_" + n] || "No transcript typed.")}</p>`).join("")}<h3>Mistakes and corrections</h3><div class="table-wrap"><table class="mistakes"><thead><tr><th>Section</th><th>Category</th><th>Original</th><th>Correction</th><th>Explanation</th></tr></thead><tbody>${x.errors.map((e) => `<tr><td>${esc(e.answer_section)}</td><td><span class="tag">${esc(e.category)}</span></td><td class="wrong">${esc(e.original_text)}</td><td class="right">${esc(e.suggested_correction || "—")}</td><td>${esc(e.explanation)}</td></tr>`).join("") || '<tr><td colspan="5">No issues found.</td></tr>'}</tbody></table></div><div class="security-note">${icon("lock")}<span>${esc(w.notice || "Automated first-pass check—teacher to confirm.")}</span></div></section>`;
+          modal.innerHTML = `<section class="modal-card report-modal"><button class="btn btn-line" style="float:right" id="closeReport">Close</button><div class="kicker">Automated first-pass report</div><h2>${esc(r.name)}</h2><p class="lead">${esc(r.email)} · ${esc((r.submitted_at || "").replace("T", " ").slice(0, 19))}</p><div class="score-row"><div class="score"><b>${esc(w.total || r.total_score)}/20</b><span>Total</span></div><div class="score"><b>${esc(currentSuggestedPlacement(w, r).level)}</b><span>Suggested level</span></div><div class="score"><b>${esc(scores.grammar || r.grammar_score)}/5</b><span>Grammar</span></div><div class="score"><b>${esc(scores.spelling_punctuation || r.spelling_punctuation_score)}/5</b><span>Spelling & punctuation</span></div><div class="score"><b>${esc(scores.vocabulary || r.vocabulary_score)}/5</b><span>Vocabulary</span></div></div><h3>Original writing answer</h3><div class="answer-box">${esc(r.writing_answer)}</div><h3>Speaking transcripts</h3>${[1, 2, 3].map((n) => `<p><b>Answer ${n}</b><br>${esc(r["speaking_transcript_" + n] || "No transcript typed.")}</p>`).join("")}<h3>Mistakes and corrections</h3><div class="table-wrap"><table class="mistakes"><thead><tr><th>Section</th><th>Category</th><th>Original</th><th>Correction</th><th>Explanation</th></tr></thead><tbody>${reportMistakes(w, x.errors).map((e) => `<tr><td>${esc(e.answer_section)}</td><td><span class="tag">${esc(e.category)}</span></td><td class="wrong">${esc(e.original_text)}</td><td class="right">${esc(e.suggested_correction || "—")}</td><td>${esc(e.explanation)}</td></tr>`).join("") || '<tr><td colspan="5">No issues found.</td></tr>'}</tbody></table></div><div class="security-note">${icon("lock")}<span>${esc(w.notice || "Automated first-pass check—teacher to confirm.")}</span></div></section>`;
           document.body.appendChild(modal);
           modal.querySelector("#closeReport").onclick = () => modal.remove();
           modal.onclick = (e) => {
@@ -2018,13 +2032,13 @@
       function drawAdminPane(tab) {
         const pane = document.querySelector("#adminPane");
         if (tab === "responses") {
-          pane.innerHTML = `<section class="admin-note"><div class="section-head"><div><div class="kicker">Student responses</div><h2>Placement results</h2></div></div><div class="table-wrap"><table><thead><tr><th>Student</th><th>Submitted</th><th>Words</th><th>Writing</th><th>Speaking evidence</th><th>Level</th><th></th></tr></thead><tbody>${state.adminResults.map((r) => `<tr><td><b>${esc(r.name)}</b><br><span style="color:var(--muted)">${esc(r.email)}</span></td><td>${esc((r.submitted_at || "").slice(0, 16).replace("T", " "))}</td><td>${esc(r.word_count)}</td><td><b>${esc(r.total_score)}/20</b></td><td>${esc(r.speaking_auto_score || "—")}/5</td><td><span class="tag ${r.suggested_level === "Teacher review required" ? "" : "green"}">${esc(r.suggested_level)}</span></td><td><div class="actions"><button class="btn btn-soft" data-report="${esc(r.submission_id)}">Open report</button><button class="btn btn-line" data-delete-report="${esc(r.submission_id)}">Delete report</button></div></td></tr>`).join("") || '<tr><td colspan="7">No submissions yet.</td></tr>'}</tbody></table></div></section>`;
+          pane.innerHTML = `<section class="admin-note"><div class="section-head"><div><div class="kicker">Student responses</div><h2>Placement results</h2></div></div><div class="table-wrap"><table><thead><tr><th>Student</th><th>Submitted</th><th>Words</th><th>Writing</th><th>Speaking evidence</th><th>Level</th><th></th></tr></thead><tbody>${state.adminResults.map((r) => `<tr><td><b>${esc(r.name)}</b><br><span style="color:var(--muted)">${esc(r.email)}</span></td><td>${esc((r.submitted_at || "").slice(0, 16).replace("T", " "))}</td><td>${esc(r.word_count)}</td><td><b>${esc(r.total_score)}/20</b></td><td>${esc(r.speaking_auto_score || "—")}/5</td><td><span class="tag ${(r.teacher_level || currentSuggestedPlacement({}, r).level) === "Teacher review required" ? "" : "green"}">${esc(r.teacher_level || currentSuggestedPlacement({}, r).level)}</span></td><td><div class="actions"><button class="btn btn-soft" data-report="${esc(r.submission_id)}">Open report</button><button class="btn btn-line" data-delete-report="${esc(r.submission_id)}">Delete report</button></div></td></tr>`).join("") || '<tr><td colspan="7">No submissions yet.</td></tr>'}</tbody></table></div></section>`;
           pane
             .querySelectorAll("[data-report]")
             .forEach((b) => (b.onclick = () => openReport(b.dataset.report)));
           return;
         }
-        pane.innerHTML = `<section class="admin-note"><div class="section-head"><div><div class="kicker">Access management</div><h2>Accounts</h2></div><button class="btn btn-primary" id="createAccount">Create account</button></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Attempts</th><th>Password</th><th></th></tr></thead><tbody>${state.adminUsers.map((u) => `<tr><td><b>${esc(u.name)}</b></td><td>${esc(u.email)}</td><td><span class="tag">${esc(u.role)}</span></td><td><span class="tag ${u.status === "active" ? "green" : ""}">${esc(u.status)}</span></td><td>${u.attempts_used}/${u.attempts_allowed}</td><td>${esc(u.password_status)}</td><td><div class="actions"><button class="btn btn-soft" data-edit-user="${u.user_id}">Edit</button>${u.user_id !== state.user.user_id ? `<button class="btn btn-line" data-delete-user="${u.user_id}">Delete account</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div></section>`;
+        pane.innerHTML = `<section class="admin-note"><div class="section-head"><div><div class="kicker">Access management</div><h2>Accounts</h2></div><button class="btn btn-primary" id="createAccount">Create account</button></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Attempts</th><th>Password</th><th></th></tr></thead><tbody>${state.adminUsers.map((u) => `<tr><td><b>${esc(u.name)}</b></td><td>${esc(u.email)}</td><td><span class="tag">${esc(u.role)}</span></td><td>${u.attempts_used}/${u.attempts_allowed}</td><td>${esc(u.password_status)}</td><td><div class="actions"><button class="btn btn-soft" data-edit-user="${u.user_id}">Edit</button>${u.user_id !== state.user.user_id ? `<button class="btn btn-line" data-delete-user="${u.user_id}">Delete account</button>` : ""}</div></td></tr>`).join("")}</tbody></table></div></section>`;
         document.querySelector("#createAccount").onclick = () => accountModal();
         pane
           .querySelectorAll("[data-edit-user]")
@@ -2036,11 +2050,6 @@
                     (u) => u.user_id === b.dataset.editUser,
                   ),
                 )),
-          );
-        pane
-          .querySelectorAll("[data-status-user]")
-          .forEach(
-            (b) => (b.onclick = () => toggleAccount(b.dataset.statusUser)),
           );
       }
       function accountModal(user = null) {
@@ -2057,8 +2066,15 @@
             role = modal.querySelector("#accountRole").value,
             password = modal.querySelector("#accountPassword").value,
             attempts = +modal.querySelector("#accountAttempts").value;
+          const save = modal.querySelector('button[type="submit"]');
+          if (save.disabled) return;
+          save.disabled = true;
+          save.textContent = "Saving...";
+          err.textContent = "";
+          let savedUser;
           try {
             if (user) {
+              if (name !== user.name || email !== user.email || role !== user.role)
               await api("/api/v1/admin/users/" + user.user_id, {
                 method: "PATCH",
                 json: { name, email, role },
@@ -2074,7 +2090,7 @@
                   json: { attempts_allowed: attempts },
                 });
             } else
-              await api("/api/v1/admin/users", {
+              savedUser = (await api("/api/v1/admin/users", {
                 method: "POST",
                 json: {
                   name,
@@ -2083,27 +2099,22 @@
                   temporary_password: password,
                   attempts_allowed: attempts,
                 },
-              });
+              })).user;
             modal.remove();
             toast(user ? "Account updated." : "Account created.");
-            adminViewV2();
+            if (user) Object.assign(user, { name, email: email.toLowerCase(), role, attempts_allowed: attempts, ...(password ? { password_status: "Set by user" } : {}) });
+            else state.adminUsers.push(savedUser);
+            updateAdminStats();
+            drawAdminPaneV3("accounts");
           } catch (x) {
             err.textContent = x.message;
+            // A multi-step edit can partially succeed; reconcile only the account list.
+            try { state.adminUsers = (await api("/api/v1/admin/users")).users; } catch {}
+          } finally {
+            save.disabled = false;
+            save.textContent = user ? "Save changes" : "Create account";
           }
         };
-      }
-      async function toggleAccount(id) {
-        const u = state.adminUsers.find((x) => x.user_id === id);
-        try {
-          await api("/api/v1/admin/users/" + id + "/status", {
-            method: "PATCH",
-            json: { status: u.status === "active" ? "disabled" : "active" },
-          });
-          toast("Account status updated.");
-          adminViewV2();
-        } catch (e) {
-          toast(e.message);
-        }
       }
       function correctedView(text, issues) {
         let out = "",
@@ -2169,7 +2180,7 @@
             speak = w.speaking_recording || { answers: [] };
           const modal = document.createElement("div");
           modal.className = "modal";
-          modal.innerHTML = `<section class="modal-card report-modal"><button class="btn btn-line" style="float:right" id="closeReport">Close</button><div class="kicker">Automated first-pass report</div><h2>${esc(r.name)}</h2><p class="lead">${esc(r.email)} · ${esc((r.submitted_at || "").replace("T", " ").slice(0, 19))}</p><div class="score-row"><div class="score"><b>${esc(w.total || r.total_score)}/20</b><span>Writing total</span></div><div class="score"><b>${esc(w.level || r.suggested_level)}</b><span>Suggested placement</span></div><div class="score"><b>${esc(scores.grammar || r.grammar_score)}/5</b><span>Grammar</span></div><div class="score"><b>${esc(scores.spelling_punctuation || r.spelling_punctuation_score)}/5</b><span>Spelling & punctuation</span></div><div class="score"><b>${esc(scores.vocabulary || r.vocabulary_score)}/5</b><span>Vocabulary</span></div><div class="score"><b>${esc(scores.task_length || r.task_length_score)}/5</b><span>Task & length</span></div></div><h3>Task-completion feedback</h3><ul class="feedback-list">${(w.task_feedback || []).map((f) => `<li>${esc(f)}</li>`).join("")}</ul><h3>Original writing answer</h3><div class="answer-box">${esc(r.writing_answer)}</div><h3>Corrected writing view</h3><div class="answer-box">${correctedView(r.writing_answer, w.issues || [])}</div><h3>Speaking grammar and sentences</h3>${speakingLanguageView(w.speaking_language)}<h3>Speaking recording evidence</h3><p class="security-note">This measures recording length, audibility, pauses and clipping only. A teacher must judge pronunciation, word accuracy, fluency and relevance.</p><div class="audio-evidence">${[
+          modal.innerHTML = `<section class="modal-card report-modal"><button class="btn btn-line" style="float:right" id="closeReport">Close</button><div class="kicker">Automated first-pass report</div><h2>${esc(r.name)}</h2><p class="lead">${esc(r.email)} · ${esc((r.submitted_at || "").replace("T", " ").slice(0, 19))}</p><div class="score-row"><div class="score"><b>${esc(w.total || r.total_score)}/20</b><span>Writing total</span></div><div class="score"><b>${esc(currentSuggestedPlacement(w, r).level)}</b><span>Suggested placement</span></div><div class="score"><b>${esc(w.speaking_assessment?.overall_score ?? r.speaking_auto_score ?? "?")}/5</b><span>Speaking overall</span></div><div class="score"><b>${esc(currentSuggestedPlacement(w, r).total)}/20</b><span>Combined score: 50% writing, 50% speaking</span></div><div class="score"><b>${esc(scores.grammar || r.grammar_score)}/5</b><span>Grammar</span></div><div class="score"><b>${esc(scores.spelling_punctuation || r.spelling_punctuation_score)}/5</b><span>Spelling & punctuation</span></div><div class="score"><b>${esc(scores.vocabulary || r.vocabulary_score)}/5</b><span>Vocabulary</span></div><div class="score"><b>${esc(scores.task_length || r.task_length_score)}/5</b><span>Task & length</span></div></div><h3>Task-completion feedback</h3><ul class="feedback-list">${(w.task_feedback || []).map((f) => `<li>${esc(f)}</li>`).join("")}</ul><h3>Original writing answer</h3><div class="answer-box">${esc(r.writing_answer)}</div><h3>Corrected writing view</h3><div class="answer-box">${correctedView(r.writing_answer, w.issues || [])}</div><h3>Speaking grammar and sentences</h3>${speakingLanguageView(w.speaking_language)}<h3>Speaking recording evidence</h3><p class="security-note">This measures recording length, audibility, pauses and clipping only. A teacher must judge pronunciation, word accuracy, fluency and relevance.</p><div class="audio-evidence">${[
             0, 1, 2,
           ]
             .map((i) => {
@@ -2178,7 +2189,7 @@
             })
             .join(
               "",
-            )}</div><h3>Mistakes and corrections</h3><div class="table-wrap"><table class="mistakes"><thead><tr><th>Section</th><th>Category</th><th>Original</th><th>Correction</th><th>Explanation</th></tr></thead><tbody>${x.errors.map((e) => `<tr><td>${esc(e.answer_section)}</td><td><span class="tag">${esc(e.category)}</span></td><td class="wrong">${esc(e.original_text)}</td><td class="right">${esc(e.suggested_correction || "—")}</td><td>${esc(e.explanation)}</td></tr>`).join("") || '<tr><td colspan="5">No rule-based issues found.</td></tr>'}</tbody></table></div><h3>Personal learning guidelines</h3>${(w.lessons || []).map((l) => `<div class="prompt"><small>${esc(l.category)}</small><strong>${esc(l.title)}</strong><p>${esc(l.rule)}<br><b>Examples:</b> ${esc(l.examples)}<br><b>Common mistake:</b> ${esc(l.mistake)}<br><b>Student example:</b> ${esc(l.student_example?.original || "")} → ${esc(l.student_example?.correction || "review")}</p></div>`).join("") || "<p>No specific lessons selected.</p>"}<div class="actions">${r.doc_url ? `<a class="btn btn-primary" target="_blank" rel="noopener" href="${esc(r.doc_url)}">Open Google Doc</a>` : ""}${r.audio_folder_url ? `<a class="btn btn-line" target="_blank" rel="noopener" href="${esc(r.audio_folder_url)}">Open audio folder</a>` : ""}</div><div class="security-note">${icon("lock")}<span>${esc(w.notice || "Automated first-pass check—teacher to confirm.")}</span></div></section>`;
+            )}</div><h3>Mistakes and corrections</h3><div class="table-wrap"><table class="mistakes"><thead><tr><th>Section</th><th>Category</th><th>Original</th><th>Correction</th><th>Explanation</th></tr></thead><tbody>${reportMistakes(w, x.errors).map((e) => `<tr><td>${esc(e.answer_section)}</td><td><span class="tag">${esc(e.category)}</span></td><td class="wrong">${esc(e.original_text)}</td><td class="right">${esc(e.suggested_correction || "—")}</td><td>${esc(e.explanation)}</td></tr>`).join("") || '<tr><td colspan="5">No rule-based issues found.</td></tr>'}</tbody></table></div><h3>Personal learning guidelines</h3>${(w.lessons || []).map((l) => `<div class="prompt"><small>${esc(l.category)}</small><strong>${esc(l.title)}</strong><p>${esc(l.rule)}<br><b>Examples:</b> ${esc(l.examples)}<br><b>Common mistake:</b> ${esc(l.mistake)}<br><b>Student example:</b> ${esc(l.student_example?.original || "")} → ${esc(l.student_example?.correction || "review")}</p></div>`).join("") || "<p>No specific lessons selected.</p>"}<div class="actions">${r.doc_url ? `<a class="btn btn-primary" target="_blank" rel="noopener" href="${esc(r.doc_url)}">Open Google Doc</a>` : ""}${r.audio_folder_url ? `<a class="btn btn-line" target="_blank" rel="noopener" href="${esc(r.audio_folder_url)}">Open audio folder</a>` : ""}</div><div class="security-note">${icon("lock")}<span>${esc(w.notice || "Automated first-pass check—teacher to confirm.")}</span></div></section>`;
           document.body.appendChild(modal);
           modal.querySelector("#closeReport").onclick = () => modal.remove();
           modal.onclick = (e) => {
@@ -2189,6 +2200,7 @@
         }
       }
       async function adminViewV3() {
+        if (document.querySelector("#adminPane")) return refreshAdminData();
         app.innerHTML =
           nav() +
           `<main class="main"><section class="hero"><div><div class="kicker">Administration</div><h1 class="page-title">Assessment centre</h1><p>Search responses, confirm placements and manage authorised accounts.</p></div><span class="status-pill">Secure administrator session</span></section><div class="admin-grid"><div class="stat"><b id="allUsers">—</b><span>Total accounts</span></div><div class="stat"><b id="students">—</b><span>Students</span></div><div class="stat"><b id="submissions">—</b><span>Submissions</span></div></div><nav class="admin-tabs"><button class="active" data-tab="responses">Student responses</button><button data-tab="accounts">Accounts</button></nav><section id="adminPane"><div class="admin-note">Loading secure data…</div></section></main>`;
@@ -2202,27 +2214,41 @@
               drawAdminPaneV3(b.dataset.tab);
             }),
         );
-        try {
-          const headers = { "X-CSRF-Token": state.csrf },
-            [users, results] = await Promise.all([
-              api("/api/v1/admin/users", { method: "GET", headers }),
-              api("/api/v1/admin/results", { method: "GET", headers }),
-            ]);
-          state.adminUsers = users.users;
-          state.adminResults = results.results;
-          document.querySelector("#allUsers").textContent = users.users.length;
-          document.querySelector("#students").textContent = users.users.filter(
-            (x) => x.role === "student",
-          ).length;
-          document.querySelector("#submissions").textContent =
-            results.results.length;
-          drawAdminPaneV3("responses");
-        } catch (e) {
-          document.querySelector("#adminPane").innerHTML =
-            `<div class="admin-note"><p class="form-error">${esc(e.message)}</p></div>`;
-        }
+        state.adminTab ||= "responses";
+        state.adminUsersLoading = !state.adminUsers;
+        state.adminResultsLoading = !state.adminResults;
+        state.adminUsers ||= [];
+        state.adminResults ||= [];
+        drawAdminPaneV3(state.adminTab);
+        await refreshAdminData();
+      }
+      function updateAdminStats() {
+        document.querySelector("#allUsers").textContent = state.adminUsers.length;
+        document.querySelector("#students").textContent = state.adminUsers.filter((u) => u.role === "student").length;
+        document.querySelector("#submissions").textContent = state.adminResults.length;
+      }
+      async function refreshAdminData() {
+        if (state.adminRefresh) return state.adminRefresh;
+        state.adminRefresh = (async () => {
+          const refresh = async (path, key, tab) => {
+            try {
+              const data = await api(path);
+              if (!state.user || !document.querySelector("#adminPane")) return;
+              state[key] = data[key === "adminUsers" ? "users" : "results"];
+              state[key + "Loading"] = false;
+              updateAdminStats();
+              if (state.adminTab === tab) drawAdminPaneV3(tab);
+            } catch (error) { toast(error.message); }
+          };
+          await Promise.all([
+            refresh("/api/v1/admin/users", "adminUsers", "accounts"),
+            refresh("/api/v1/admin/results", "adminResults", "responses"),
+          ]);
+        })();
+        try { await state.adminRefresh; } finally { state.adminRefresh = null; }
       }
       function drawAdminPaneV3(tab) {
+        state.adminTab = tab;
         const pane = document.querySelector("#adminPane");
         if (tab === "responses") {
           pane.innerHTML = `<section class="admin-note"><div class="section-head"><div><div class="kicker">Student responses</div><h2>Placement results</h2></div></div><div class="filters"><input class="field" id="resultSearch" placeholder="Search name or email"><select id="levelFilter"><option value="">All levels</option><option>Teacher review required</option><option>Below A2</option><option>A2</option><option>B1</option><option>B2</option></select><button class="btn btn-line" id="printResults">Print list</button><button class="btn btn-primary" id="exportResults">Export CSV</button></div><div class="table-wrap"><table><thead><tr><th>Student</th><th>Submitted</th><th>Words</th><th>Writing</th><th>Speaking evidence</th><th>Placement</th><th></th></tr></thead><tbody id="filteredResults"></tbody></table></div></section>`;
@@ -2234,16 +2260,16 @@
               rows = state.adminResults.filter(
                 (r) =>
                   (!q || (r.name + " " + r.email).toLowerCase().includes(q)) &&
-                  (!level || r.suggested_level === level),
+                  (!level || (r.teacher_level || currentSuggestedPlacement({}, r).level) === level),
               );
             document.querySelector("#filteredResults").innerHTML =
               rows
                 .map(
                   (r) =>
-                    `<tr><td><b>${esc(r.name)}</b><br><span style="color:var(--muted)">${esc(r.email)}</span></td><td>${esc((r.submitted_at || "").slice(0, 16).replace("T", " "))}</td><td>${esc(r.word_count)}</td><td><b>${esc(r.total_score)}/20</b></td><td>${esc(r.speaking_auto_score || "—")}/5</td><td><span class="tag ${r.suggested_level === "Teacher review required" ? "" : "green"}">${esc(r.suggested_level)}</span></td><td><div class="actions"><button class="btn btn-soft" data-managed-report="${esc(r.submission_id)}">Open report</button><button class="btn btn-line" data-delete-report="${esc(r.submission_id)}">Delete report</button></div></td></tr>`,
+                    `<tr><td><b>${esc(r.name)}</b><br><span style="color:var(--muted)">${esc(r.email)}</span></td><td>${esc((r.submitted_at || "").slice(0, 16).replace("T", " "))}</td><td>${esc(r.word_count)}</td><td><b>${esc(r.total_score)}/20</b></td><td>${esc(r.speaking_auto_score || "—")}/5</td><td><span class="tag ${(r.teacher_level || currentSuggestedPlacement({}, r).level) === "Teacher review required" ? "" : "green"}">${esc(r.teacher_level || currentSuggestedPlacement({}, r).level)}</span></td><td><div class="actions"><button class="btn btn-soft" data-managed-report="${esc(r.submission_id)}">Open report</button><button class="btn btn-line" data-delete-report="${esc(r.submission_id)}">Delete report</button></div></td></tr>`,
                 )
                 .join("") ||
-              '<tr><td class="empty" colspan="7">No matching submissions.</td></tr>';
+              `<tr><td class="empty" colspan="7">${state.adminResultsLoading ? 'Loading assessments...' : 'No matching submissions.'}</td></tr>`;
             document
               .querySelectorAll("[data-managed-report]")
               .forEach(
@@ -2260,7 +2286,7 @@
           render();
           return;
         }
-        pane.innerHTML = `<section class="admin-note"><div class="section-head"><div><div class="kicker">Access management</div><h2>Accounts</h2></div><div class="actions"><button class="btn btn-line" id="bulkAccounts">Bulk import</button><button class="btn btn-primary" id="createAccount">Create account</button></div></div><div class="filters" style="grid-template-columns:1fr 180px"><input class="field" id="accountSearch" placeholder="Search accounts"><select id="roleFilter"><option value="">All roles</option><option value="student">Students</option><option value="admin">Administrators</option></select></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Attempts</th><th>Password</th><th></th></tr></thead><tbody id="filteredAccounts"></tbody></table></div></section>`;
+        pane.innerHTML = `<section class="admin-note"><div class="section-head"><div><div class="kicker">Access management</div><h2>Accounts</h2></div><div class="actions"><button class="btn btn-line" id="bulkAccounts">Bulk import</button><button class="btn btn-primary" id="createAccount">Create account</button></div></div><div class="filters" style="grid-template-columns:1fr 180px"><input class="field" id="accountSearch" placeholder="Search accounts"><select id="roleFilter"><option value="">All roles</option><option value="student">Students</option><option value="admin">Administrators</option></select></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Attempts</th><th>Password</th><th></th></tr></thead><tbody id="filteredAccounts"></tbody></table></div></section>`;
         const renderAccounts = () => {
           const q = document
               .querySelector("#accountSearch")
@@ -2275,10 +2301,10 @@
             users
               .map(
                 (u) =>
-                  `<tr><td><b>${esc(u.name)}</b></td><td>${esc(u.email)}</td><td><span class="tag">${esc(u.role)}</span></td><td><span class="tag ${u.status === "active" ? "green" : ""}">${esc(u.status)}</span></td><td>${u.attempts_used}/${u.attempts_allowed}</td><td>${esc(u.password_status)}</td><td><div class="actions"><button class="btn btn-soft" data-edit-user="${u.user_id}">Edit</button>${u.user_id !== state.user.user_id ? `<button class="btn btn-line" data-delete-user="${u.user_id}">Delete account</button>` : ""}</div></td></tr>`,
+                  `<tr><td><b>${esc(u.name)}</b></td><td>${esc(u.email)}</td><td><span class="tag">${esc(u.role)}</span></td><td>${u.attempts_used}/${u.attempts_allowed}</td><td>${esc(u.password_status)}</td><td><div class="actions"><button class="btn btn-soft" data-edit-user="${u.user_id}">Edit</button>${u.user_id !== state.user.user_id ? `<button class="btn btn-line" data-delete-user="${u.user_id}">Delete account</button>` : ""}</div></td></tr>`,
               )
               .join("") ||
-            '<tr><td class="empty" colspan="7">No matching accounts.</td></tr>';
+            `<tr><td class="empty" colspan="6">${state.adminUsersLoading ? 'Loading accounts...' : 'No matching accounts.'}</td></tr>`;
           document
             .querySelectorAll("[data-edit-user]")
             .forEach(
@@ -2289,11 +2315,6 @@
                       (u) => u.user_id === b.dataset.editUser,
                     ),
                   )),
-            );
-          document
-            .querySelectorAll("[data-status-user]")
-            .forEach(
-              (b) => (b.onclick = () => toggleAccount(b.dataset.statusUser)),
             );
         };
         document.querySelector("#accountSearch").oninput = renderAccounts;
@@ -2333,7 +2354,7 @@
           return;
         }
         win.document.write(
-          `<title>Kaplan placement results</title><style>body{font-family:Arial;padding:30px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #bbb;padding:8px;text-align:left}h1{color:#731f35}</style><h1>Kaplan placement results</h1><p>Printed ${new Date().toLocaleString("en-GB")}</p><table><tr><th>Student</th><th>Email</th><th>Submitted</th><th>Writing</th><th>Speaking evidence</th><th>Placement</th></tr>${rows.map((r) => `<tr><td>${esc(r.name)}</td><td>${esc(r.email)}</td><td>${esc(r.submitted_at)}</td><td>${esc(r.total_score)}/20</td><td>${esc(r.speaking_auto_score || "—")}/5</td><td>${esc(r.suggested_level)}</td></tr>`).join("")}</table>`,
+          `<title>Kaplan placement results</title><style>body{font-family:Arial;padding:30px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #bbb;padding:8px;text-align:left}h1{color:#731f35}</style><h1>Kaplan placement results</h1><p>Printed ${new Date().toLocaleString("en-GB")}</p><table><tr><th>Student</th><th>Email</th><th>Submitted</th><th>Writing</th><th>Speaking evidence</th><th>Placement</th></tr>${rows.map((r) => `<tr><td>${esc(r.name)}</td><td>${esc(r.email)}</td><td>${esc(r.submitted_at)}</td><td>${esc(r.total_score)}/20</td><td>${esc(r.speaking_auto_score || "—")}/5</td><td>${esc(r.teacher_level || currentSuggestedPlacement({}, r).level)}</td></tr>`).join("")}</table>`,
         );
         win.document.close();
         win.focus();
@@ -2370,6 +2391,10 @@
               "Invalid format on line(s): " + bad.join(", ");
             return;
           }
+          const save = modal.querySelector("#bulkForm button");
+          if (save.disabled) return;
+          save.disabled = true;
+          save.textContent = "Importing...";
           try {
             const result = await api("/api/v1/admin/users/bulk", {
               method: "POST",
@@ -2382,6 +2407,9 @@
             adminViewV3();
           } catch (x) {
             modal.querySelector("#bulkError").textContent = x.message;
+          } finally {
+            save.disabled = false;
+            save.textContent = "Import students";
           }
         };
       }
@@ -2523,34 +2551,6 @@
           state.openingReport = false;
         }
       }
-      document.addEventListener(
-        "submit",
-        (e) => {
-          const form = e.target;
-          if (!["accountForm", "bulkForm"].includes(form.id)) return;
-          if (form.dataset.saving === "true") {
-            e.preventDefault();
-            return;
-          }
-          form.dataset.saving = "true";
-          const button = form.querySelector('button[type="submit"]');
-          if (button) {
-            button.disabled = true;
-            button.dataset.original = button.textContent;
-            button.innerHTML = '<i class="spinner"></i> Saving…';
-          }
-          setTimeout(() => {
-            if (document.body.contains(form)) {
-              form.dataset.saving = "false";
-              if (button) {
-                button.disabled = false;
-                button.textContent = button.dataset.original || "Save";
-              }
-            }
-          }, 15000);
-        },
-        true,
-      );
       async function attachEmbeddedAudio(submissionId, modal) {
         const cards = [...modal.querySelectorAll(".audio-evidence>div")];
         const objectUrls = [];
@@ -2690,18 +2690,15 @@
           );
         if (!grammarHeading || !recordingHeading) return;
         const merged = document.createElement("section");
-        merged.innerHTML = `<h3>Speaking grammar, sentences and recordings</h3><p class="security-note">The final mark is based mainly on grammar, vocabulary, sentence quality, development and relevance. Recording quality has a smaller weighting. Transcript sentence-start capitalisation is not graded.</p><div class="audio-evidence">${[
+        merged.innerHTML = `<h3>Speaking grammar, sentences and recordings</h3><p class="security-note">The final mark is based mainly on grammar, vocabulary, sentence quality, development and relevance. Recording quality has a smaller weighting. Transcript punctuation, capitalisation and sentence boundaries are not counted as speaking mistakes or graded.</p><div class="audio-evidence">${[
           0, 1, 2,
         ]
           .map((i) => {
             const number = i + 1,
               language = reports[i] || {},
               grade = grades.get(number) || language.assessment || {},
-              audio = recording.answers?.[i] || {},
-              issues = (language.issues || []).filter(
-                (issue) => issue.rule_id !== "sentence-capital",
-              );
-            return `<div><b>Answer ${number}: ${esc(grade.final_score ?? "—")}/5</b><p>Grammar ${esc(grade.grammar_score ?? "—")}/5 · Vocabulary ${esc(grade.vocabulary_score ?? "—")}/5 · Sentences ${esc(grade.sentence_score ?? "—")}/5 · Development ${esc(grade.development_score ?? "—")}/5 · Relevance ${esc(grade.relevance_score ?? "—")}/5</p><span>Recording quality ${esc(grade.recording_quality_score ?? audio.automated_recording_score ?? "—")}/5 · ${esc(audio.duration_seconds ?? "—")} seconds</span><p>${esc((grade.feedback || []).join(" ") || (audio.feedback || []).join(" "))}</p>${r["audio_" + number + "_url"] ? `<a class="btn btn-soft" target="_blank" rel="noopener" href="${esc(r["audio_" + number + "_url"])}">Open recording</a>` : ""}<p><strong>Automatically captured transcript:</strong><br>${esc(r["speaking_transcript_" + number] || "Transcript unavailable; listen to the recording.")}</p><h4>Mistakes and corrections</h4>${issues.length ? `<div class="table-wrap"><table class="mistakes"><thead><tr><th>Category</th><th>Original</th><th>Correction</th><th>Explanation</th></tr></thead><tbody>${issues.map((issue) => `<tr><td>${esc(issue.category)}</td><td class="wrong">${esc(issue.original)}</td><td class="right">${esc(issue.correction || "—")}</td><td>${esc(issue.explanation)}</td></tr>`).join("")}</tbody></table></div>` : "<p>No rule-based grammar, vocabulary or sentence mistakes found.</p>"}</div>`;
+              audio = recording.answers?.[i] || {};
+            return `<div><b>Answer ${number}: ${esc(grade.final_score ?? "—")}/5</b><p>Grammar ${esc(grade.grammar_score ?? "—")}/5 · Vocabulary ${esc(grade.vocabulary_score ?? "—")}/5 · Sentences ${esc(grade.sentence_score ?? "—")}/5 · Development ${esc(grade.development_score ?? "—")}/5 · Relevance ${esc(grade.relevance_score ?? "—")}/5</p><span>Recording quality ${esc(grade.recording_quality_score ?? audio.automated_recording_score ?? "—")}/5 · ${esc(audio.duration_seconds ?? "—")} seconds</span><p>${esc((grade.feedback || []).join(" ") || (audio.feedback || []).join(" "))}</p>${r["audio_" + number + "_url"] ? `<a class="btn btn-soft" target="_blank" rel="noopener" href="${esc(r["audio_" + number + "_url"])}">Open recording</a>` : ""}<p><strong>Automatically captured transcript:</strong><br>${esc(r["speaking_transcript_" + number] || "Transcript unavailable; listen to the recording.")}</p></div>`;
           })
           .join("")}</div>`;
         grammarHeading.before(merged);
@@ -2713,10 +2710,6 @@
           if (done) break;
           node = next;
         }
-        modal.querySelectorAll("table.mistakes tbody tr").forEach((row) => {
-          if (/^speaking_/i.test(row.cells?.[0]?.textContent || ""))
-            row.remove();
-        });
       }
       document.addEventListener("click", async (event) => {
         const button = event.target.closest(
@@ -2727,7 +2720,7 @@
         if (
           !confirm(
             account
-              ? "Delete this account and all its reports and recordings? This cannot be undone."
+              ? "Delete this account? Their reports and recordings will be kept. This cannot be undone."
               : "Delete this report and its recordings? This cannot be undone.",
           )
         )
@@ -2755,11 +2748,18 @@
         if (state.openingReport || document.querySelector(".report-modal"))
           return;
         state.openingReport = true;
+        const loading = document.createElement("div");
+        loading.className = "modal";
+        loading.innerHTML = '<section class="modal-card"><button class="btn btn-line" style="float:right">Close</button><h2>Opening report</h2><p role="status"><i class="spinner"></i> Loading assessment...</p></section>';
+        document.body.appendChild(loading);
+        loading.querySelector("button").onclick = () => loading.remove();
         try {
           const detail = await api(
             "/api/v1/admin/results/" + encodeURIComponent(id),
             { method: "GET", headers: { "X-CSRF-Token": state.csrf } },
           );
+          if (!loading.isConnected) return;
+          loading.remove();
           await openReport(id, detail);
           const modals = document.querySelectorAll(".modal"),
             modal = modals[modals.length - 1],
@@ -2798,6 +2798,7 @@
         } catch (e) {
           toast(e.message);
         } finally {
+          loading.remove();
           state.openingReport = false;
         }
       }

@@ -650,3 +650,53 @@ test("legacy scores agree across results list, report and CSV without opening re
   assert.equal(lines[1][lines[0].indexOf("total_score")], String(report.total));
   assert.equal(lines[1][lines[0].indexOf("suggested_level")], report.level);
 });
+
+test("deleting an account retains its report, errors and playable recordings", async (t) => {
+  const { request, login, store } = await fixture(t);
+  // Match the durable store's recording reader using MemoryStore's audio map.
+  store.readRecording = async (id, number) => store.recordings.get(id)[number - 1];
+  const admin = await login();
+  const student = await login("student@example.com", "Student!Pass1");
+  const account = await store.find("Users", "email", "student@example.com");
+  assert.equal(account.status, "active");
+  const id = randomUUID();
+  const saved = await request("/api/v1/student/submissions", {
+    method: "POST",
+    headers: student,
+    body: multipart(payload(id)),
+  });
+  assert.equal(saved.status, 201, saved.text);
+  const errorsBefore = (await store.all("Errors")).filter(
+    (e) => e.submission_id === id,
+  );
+  const deleted = await request("/api/v1/admin/users/" + account.user_id, {
+    method: "DELETE",
+    headers: admin,
+  });
+  assert.equal(deleted.status, 200, deleted.text);
+  assert.equal(
+    await store.find("Users", "user_id", account.user_id),
+    undefined,
+  );
+  assert.equal(
+    (await request("/api/v1/auth/me", { headers: student })).status,
+    401,
+  );
+  assert.ok(await store.find("Results", "submission_id", id));
+  assert.deepEqual(
+    (await store.all("Errors")).filter((e) => e.submission_id === id),
+    errorsBefore,
+  );
+  assert.equal(
+    (await request("/api/v1/admin/results/" + id, { headers: admin })).status,
+    200,
+  );
+  assert.equal(
+    (
+      await request("/api/v1/admin/results/" + id + "/audio/1", {
+        headers: admin,
+      })
+    ).status,
+    200,
+  );
+});

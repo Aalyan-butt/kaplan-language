@@ -108,7 +108,9 @@ test("speaking transcripts do not receive sentence-start capitalisation errors",
   assert.ok(
     !report.issues.some((issue) => issue.rule_id === "sentence-capital"),
   );
-  assert.ok(report.issues.some((issue) => issue.rule_id === "capital-i"));
+  assert.ok(
+    !report.issues.some((issue) => issue.category === "Capitalisation"),
+  );
 });
 
 test("reported learner errors reduce grammar marks", () => {
@@ -133,5 +135,86 @@ test("reported learner errors reduce grammar marks", () => {
   assert.ok(
     analyse("yes my favourite hobbies Garden because it helps", "speaking_2")
       .scores.grammar < 5,
+  );
+});
+
+test("past-experience tasks reject present, future and mixed narration", () => {
+  for (const text of [
+    "I visit the museum with my family and enjoy the paintings.",
+    "I will visit the museum and I will enjoy the paintings.",
+    "I visited the museum. We are happy and we will return tomorrow.",
+    "My family is happy. The museum is beautiful.",
+    "I'm visiting the park and I'll play football.",
+  ]) {
+    const reports = analyseSubmission(text, [
+      text,
+      "My hobbies are reading and swimming.",
+      text,
+    ]);
+    for (const report of [
+      reports.writing,
+      reports.speaking[0],
+      reports.speaking[2],
+    ]) {
+      assert.equal(report.tense_requirement.accepted, false, text);
+      assert.equal(report.scores.grammar, 1);
+      assert.equal(report.scores.task_length, 1);
+      assert.match(report.task_feedback.join(" "), /Past tense required/);
+      for (const issue of report.issues)
+        assert.equal(text.slice(issue.start, issue.end), issue.original);
+    }
+    assert.equal(reports.speaking[1].scores.grammar, 5);
+    const scored = assessSpeaking(
+      reports.speaking,
+      { answers: [1, 2, 3].map(() => ({ automated_recording_score: 5 })) },
+      [text, "My hobbies are reading and swimming.", text],
+    );
+    assert.equal(scored.answers[0].final_score, 1);
+    assert.equal(scored.answers[2].final_score, 1);
+  }
+});
+
+test("past tasks accept simple, continuous, perfect and past auxiliary constructions", () => {
+  for (const text of [
+    "I visited the museum and enjoyed the paintings. We were happy because we learned about history.",
+    "I was walking in the park. We had planned to visit the museum but we did not go.",
+    "I went home because I felt tired. I could see the stars and wanted to remember the evening.",
+  ]) {
+    const reports = analyseSubmission(text, [text, "", text]);
+    for (const report of [
+      reports.writing,
+      reports.speaking[0],
+      reports.speaking[2],
+    ]) {
+      assert.equal(
+        report.tense_requirement.accepted,
+        true,
+        JSON.stringify(report.issues),
+      );
+    }
+  }
+});
+
+test("speaking punctuation is absent from mistakes, counts and grammar grading", () => {
+  const text =
+    "I visited the museum with my family and we enjoyed the paintings because we wanted to learn about history and we talked about the pictures and we went home together";
+  const spoken = analyseSubmission("Yesterday I visited the park.", [
+    text,
+    "",
+    "",
+  ]).speaking[0];
+  const excluded = [
+    "Punctuation",
+    "Capitalisation",
+    "Spacing",
+    "Comma splice",
+    "Run-on sentence",
+    "Sentence boundaries",
+  ];
+  assert.ok(spoken.issues.every((issue) => !excluded.includes(issue.category)));
+  assert.ok(excluded.every((category) => !spoken.category_counts[category]));
+  assert.equal(spoken.scores.grammar, 5);
+  assert.ok(
+    analyse(text).issues.some((issue) => issue.category === "Punctuation"),
   );
 });
